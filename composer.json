@@ -1,0 +1,12 @@
+{
+    "name": "fastd/migration",
+    "authors": [
+        {
+            "name": "JanHuang",
+            "email": "bboyjanhuang@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.6"
+    }
+}
