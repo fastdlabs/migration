@@ -16,8 +16,6 @@ namespace FastD\Database\Schema\Structure;
  */
 class Field
 {
-    use Rename;
-
     /**
      * int
      */

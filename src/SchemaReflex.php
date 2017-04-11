@@ -15,6 +15,7 @@ use FastD\Generator\Factory\Obj;
 use FastD\Generator\Factory\Property;
 use FastD\Generator\Generator;
 use FastD\Database\Schema\Structure\Table;
+use FastD\Migration\MigrationAbstract;
 
 /**
  * 数据模型结构反射
@@ -23,15 +24,8 @@ use FastD\Database\Schema\Structure\Table;
  *
  * @package FastD\Database\Schema
  */
-class SchemaReflex
+class SchemaReflex extends MigrationAbstract
 {
-    use Rename;
-
-    const REFLEX_ENTITIES = 'Entities';
-    const REFLEX_MODELS = 'Models';
-    const REFLEX_FIELDS = 'Fields';
-    const BASE_NAMESPACE = '\FastD\Database\ORM';
-
     /**
      * @var Table[]
      */
