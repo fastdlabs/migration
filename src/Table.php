@@ -1,14 +1,13 @@
 <?php
 /**
- *
  * @author    jan huang <bboyjanhuang@gmail.com>
  * @copyright 2016
  *
- * @link      https://www.github.com/janhuang
- * @link      http://www.fast-d.cn/
+ * @see      https://www.github.com/janhuang
+ * @see      http://www.fast-d.cn/
  */
 
-namespace FastD\Database\Schema\Structure;
+namespace FastD\Migration;
 
 /**
  * Class Table
@@ -22,12 +21,12 @@ class Table
     protected $table;
 
     /**
-     * @var Field[]
+     * @var Column[]
      */
-    protected $fields = [];
+    protected $columns = [];
 
     /**
-     * @var Field[]
+     * @var Column[]
      */
     protected $alters = [];
 
@@ -74,43 +73,43 @@ class Table
     }
 
     /**
-     * Setting fields.
-     * 
-     * @param Field[] $fields
+     * Setting columns.
+     *
+     * @param Column[] $columns
      * @return $this
      */
-    public function setFields(array $fields)
+    public function setColumns(array $columns)
     {
-        $this->fields = $fields;
+        $this->columns = $columns;
 
         return $this;
     }
 
     /**
-     * Add field.
+     * Add column.
      *
-     * @param Field $field
-     * @param Key $key
+     * @param Column $column
+     * @param Index $key
      * @return $this
      */
-    public function addField(Field $field, Key $key = null)
+    public function addColumn(Column $column, Index $key = null)
     {
         if (null !== $key) {
-            $field->setKey($key);
+            $column->setKey($key);
         }
-        
-        $this->fields[$field->getName()] = $field;
+
+        $this->columns[$column->getName()] = $column;
 
         return $this;
     }
 
     /**
-     * Drop field.
+     * Drop column.
      *
      * @param string $name
      * @return $this
      */
-    public function dropField($name)
+    public function dropColumn($name)
     {
         $this->drops[$name] = $name;
 
@@ -118,30 +117,30 @@ class Table
     }
 
     /**
-     * Change field
+     * Change column
      *
      * @param $name
-     * @param Field $field
-     * @param Key $key
+     * @param Column $column
+     * @param Index $key
      * @return $this
      */
-    public function alterField($name, Field $field, Key $key = null)
+    public function alterColumn($name, Column $column, Index $key = null)
     {
         if (null !== $key) {
-            $field->setKey($key);
+            $column->setKey($key);
         }
 
-        $this->fields[$name] = $field;
+        $this->columns[$name] = $column;
 
-        $this->alters[$name] = $field;
+        $this->alters[$name] = $column;
 
         return $this;
     }
 
     /**
-     * @return Field[]
+     * @return Column[]
      */
-    public function getAlterFields()
+    public function getAlterColumns()
     {
         return $this->alters;
     }
@@ -149,30 +148,30 @@ class Table
     /**
      * @return array
      */
-    public function getDropFields()
+    public function getDropColumns()
     {
         return $this->drops;
     }
 
     /**
-     * Get all table schema fields.
+     * Get all table schema columns.
      *
-     * @return Field[]
+     * @return Column[]
      */
-    public function getFields()
+    public function getColumns()
     {
-        return $this->fields;
+        return $this->columns;
     }
 
     /**
-     * Get one table field object.
+     * Get one table column object.
      *
      * @param $name
-     * @return Field|null
+     * @return Column|null
      */
-    public function getField($name)
+    public function getColumn($name)
     {
-        return isset($this->fields[$name]) ? $this->fields[$name] : null;
+        return isset($this->columns[$name]) ? $this->columns[$name] : null;
     }
 
     /**
@@ -275,14 +274,6 @@ class Table
      */
     public function getTableName()
     {
-        return $this->table;
-    }
-
-    /**
-     * @return string
-     */
-    public function getFullTableName()
-    {
-        return $this->getPrefix() . $this->getTableName() . $this->getSuffix();
+        return $this->prefix.$this->table.$this->suffix;
     }
 }

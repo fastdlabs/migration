@@ -1,20 +1,19 @@
 <?php
 /**
- *
  * @author    jan huang <bboyjanhuang@gmail.com>
  * @copyright 2016
  *
- * @link      https://www.github.com/janhuang
- * @link      http://www.fast-d.cn/
+ * @see      https://www.github.com/janhuang
+ * @see      http://www.fast-d.cn/
  */
 
-namespace FastD\Database\Schema\Structure;
+namespace FastD\Migration;
 
 /**
  * Class Field
  * @package FastD\Database\Schema
  */
-class Field
+class Column
 {
     /**
      * int
@@ -106,14 +105,14 @@ class Field
      * @var string
      */
     protected $default;
-    
+
     /**
      * @var string
      */
     protected $comment;
 
     /**
-     * @var Key
+     * @var Index
      */
     protected $key;
 
@@ -124,7 +123,7 @@ class Field
 
     /**
      * Field constructor.
-     * 
+     *
      * @param $name
      * @param $type
      * @param $length
@@ -132,7 +131,7 @@ class Field
      * @param string $default
      * @param string $comment
      */
-    public function __construct($name, $type, $length, $nullable = false, $default = '', $comment = '')
+    public function __construct($name, $type, $length = null, $nullable = false, $default = '', $comment = '')
     {
         $this->name = $name;
 
@@ -154,19 +153,23 @@ class Field
      */
     protected function getFieldTypeDefault($type, $default)
     {
-        if (in_array($type, [
-            'int',
-            'smallint',
-            'tinyint',
-            'mediumint',
-            'integer',
-            'bigint',
-            'float',
-            'double'])) {
-            return empty($default) ? 0 : (int) $default;
+        if (in_array(
+            $type,
+            [
+                'int',
+                'smallint',
+                'tinyint',
+                'mediumint',
+                'integer',
+                'bigint',
+                'float',
+                'double',
+            ]
+        )) {
+            return empty($default) ? 0 : (int)$default;
         }
 
-        return empty($default) ? '' : (string) $default;
+        return empty($default) ? '' : (string)$default;
     }
 
     /**
@@ -275,7 +278,7 @@ class Field
     }
 
     /**
-     * @return Key
+     * @return Index
      */
     public function getKey()
     {
@@ -283,24 +286,24 @@ class Field
     }
 
     /**
-     * @param Key $key
+     * @param Index $key
      * @return $this
      */
-    public function setKey(Key $key)
+    public function setKey(Index $key)
     {
         $this->key = $key;
-        
+
         $key->setField($this);
 
         return $this;
     }
-    
+
     /**
      * @return string
      */
     public function getAlias()
     {
-        return empty($this->alias) ? $this->rename($this->name) : $this->alias;
+        return empty($this->alias) ? rename($this->name) : $this->alias;
     }
 
     /**
@@ -365,7 +368,7 @@ class Field
         if (null === $this->key) {
             return false;
         }
-        
+
         return $this->key->isUnique();
     }
 
@@ -389,27 +392,27 @@ class Field
     }
 
     /**
-     * @param Field $field
+     * @param Column $field
      * @return bool
      */
-    public function equal(Field $field)
+    public function equal(Column $field)
     {
         return
             (
                 $field->getName()
-                . $field->getType()
-                . $field->getLength()
-                . $field->getComment()
-                . $field->getDefault()
-                . (null !== $field->getKey() ? $field->getKey()->getKey() : '')
+                .$field->getType()
+                .$field->getLength()
+                .$field->getComment()
+                .$field->getDefault()
+                .(null !== $field->getKey() ? $field->getKey()->getKey() : '')
             ) ===
             (
                 $this->getName()
-                . $this->getType()
-                . $this->getLength()
-                . $this->getComment()
-                . $this->getDefault()
-                . (null !== $this->getKey() ? $this->getKey()->getKey() : '')
+                .$this->getType()
+                .$this->getLength()
+                .$this->getComment()
+                .$this->getDefault()
+                .(null !== $this->getKey() ? $this->getKey()->getKey() : '')
             );
     }
 }

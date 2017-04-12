@@ -11,18 +11,21 @@
  * @param $name
  * @return string
  */
-function rename($name)
-{
-    if (strpos($name, '_')) {
-        $arr = explode('_', $name);
-        $name = array_shift($arr);
-        foreach ($arr as $value) {
-            $name .= ucfirst($value);
+if (!function_exists('rename')) {
+    function rename($name)
+    {
+        if (strpos($name, '_')) {
+            $arr = explode('_', $name);
+            $name = array_shift($arr);
+            foreach ($arr as $value) {
+                $name .= ucfirst($value);
+            }
         }
-    }
 
-    return $name;
+        return $name;
+    }
 }
+
 
 /**
  * @param $name

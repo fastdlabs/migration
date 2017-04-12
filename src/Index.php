@@ -1,21 +1,20 @@
 <?php
 /**
- *
  * @author    jan huang <bboyjanhuang@gmail.com>
  * @copyright 2016
  *
- * @link      https://www.github.com/janhuang
- * @link      http://www.fast-d.cn/
+ * @see      https://www.github.com/janhuang
+ * @see      http://www.fast-d.cn/
  */
 
-namespace FastD\Database\Schema\Structure;
+namespace FastD\Migration;
 
 /**
  * Class Key
- * 
+ *
  * @package FastD\Database\Schema
  */
-class Key
+class Index
 {
     /**
      * Primary key
@@ -52,16 +51,16 @@ class Key
      * Key constructor.
      * @param string $key
      */
-    public function __construct($key = Key::INDEX)
+    public function __construct($key = Index::INDEX)
     {
         $this->key = $key;
     }
 
     /**
-     * @param Field $field
+     * @param Column $field
      * @return $this
      */
-    public function setField(Field $field)
+    public function setField(Column $field)
     {
         $this->field = $field;
 
@@ -89,7 +88,7 @@ class Key
      */
     public function isPrimary()
     {
-        return $this->key === Key::PRIMARY;
+        return $this->key === Index::PRIMARY;
     }
 
     /**
@@ -97,7 +96,7 @@ class Key
      */
     public function isUnique()
     {
-        return $this->key === Key::UNIQUE;
+        return $this->key === Index::UNIQUE;
     }
 
     /**
@@ -105,6 +104,6 @@ class Key
      */
     public function isIndex()
     {
-        return $this->key === Key::INDEX;
+        return $this->key === Index::INDEX;
     }
 }
