@@ -46,6 +46,7 @@ class Migration
             }
             $config = Yaml::parse(file_get_contents($file));
             unset($file);
+            $pdo = new PDO(sprintf('mysql:host=%s;dbname=%s', $config['host'], $config['dbname']), $config['user'], $config['pass']);
         }
 
         if ( ! file_exists($this->cachePath)) {
