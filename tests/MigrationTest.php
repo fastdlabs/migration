@@ -8,7 +8,7 @@
  */
 
 use FastD\Migration\Column;
-use FastD\Migration\Migration;
+use FastD\Migration\Schema;
 use FastD\Migration\Table;
 
 class MigrationTest extends PHPUnit_Framework_TestCase
@@ -26,20 +26,20 @@ class MigrationTest extends PHPUnit_Framework_TestCase
 
     public function testMigrationCreateTableSchema()
     {
-        $migration = new Migration($this->pdo);
+        $migration = new Schema($this->pdo);
 //        echo $migration->create($this->table) . PHP_EOL;
 //        echo $migration->create($this->table, true);
     }
 
     public function testMigrationAlterTableSchema()
     {
-        $migration = new Migration($this->pdo);
+        $migration = new Schema($this->pdo);
 //        echo $migration->alter($this->table);
     }
 
     public function testMigrationUpdateTableSchema()
     {
-        $migration = new Migration($this->pdo);
+        $migration = new Schema($this->pdo);
         $this->table->addColumn(new Column('date', 'int', 10));
         echo $migration->update($this->table);
     }
