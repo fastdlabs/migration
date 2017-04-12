@@ -1,6 +1,10 @@
 # MySQL Migration
 
-简单的数据库迁移工具。支持创建、修改、数据集填充等基础功能。
+轻量，简单又好用的数据库迁移工具。支持创建、修改、数据集填充等基础功能。
+
+* Documentation
+
+* [简体中文](docs/zh_CN/readme.md)
 
 ### Support
 
