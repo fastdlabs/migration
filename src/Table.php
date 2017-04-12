@@ -26,16 +26,6 @@ class Table
     protected $columns = [];
 
     /**
-     * @var Column[]
-     */
-    protected $alters = [];
-
-    /**
-     * @var array
-     */
-    protected $drops = [];
-
-    /**
      * @var string
      */
     protected $charset = 'utf8';
@@ -49,16 +39,6 @@ class Table
      * @var string
      */
     protected $comment = '';
-
-    /**
-     * @var string
-     */
-    protected $suffix = '';
-
-    /**
-     * @var string
-     */
-    protected $prefix = '';
 
     /**
      * Table constructor.
@@ -104,56 +84,6 @@ class Table
     }
 
     /**
-     * Drop column.
-     *
-     * @param string $name
-     * @return $this
-     */
-    public function dropColumn($name)
-    {
-        $this->drops[$name] = $name;
-
-        return $this;
-    }
-
-    /**
-     * Change column
-     *
-     * @param $name
-     * @param Column $column
-     * @param Index $key
-     * @return $this
-     */
-    public function alterColumn($name, Column $column, Index $key = null)
-    {
-        if (null !== $key) {
-            $column->setKey($key);
-        }
-
-        $this->columns[$name] = $column;
-
-        $this->alters[$name] = $column;
-
-        return $this;
-    }
-
-    /**
-     * @return Column[]
-     */
-    public function getAlterColumns()
-    {
-        return $this->alters;
-    }
-
-    /**
-     * @return array
-     */
-    public function getDropColumns()
-    {
-        return $this->drops;
-    }
-
-    /**
      * Get all table schema columns.
      *
      * @return Column[]
@@ -167,49 +97,11 @@ class Table
      * Get one table column object.
      *
      * @param $name
-     * @return Column|null
+     * @return Column|bool
      */
     public function getColumn($name)
     {
-        return isset($this->columns[$name]) ? $this->columns[$name] : null;
-    }
-
-    /**
-     * @return string
-     */
-    public function getPrefix()
-    {
-        return $this->prefix;
-    }
-
-    /**
-     * @param string $prefix
-     * @return $this
-     */
-    public function setPrefix($prefix)
-    {
-        $this->prefix = $prefix;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getSuffix()
-    {
-        return $this->suffix;
-    }
-
-    /**
-     * @param string $suffix
-     * @return $this
-     */
-    public function setSuffix($suffix)
-    {
-        $this->suffix = $suffix;
-
-        return $this;
+        return isset($this->columns[$name]) ? $this->columns[$name] : false;
     }
 
     /**
@@ -274,6 +166,6 @@ class Table
      */
     public function getTableName()
     {
-        return $this->prefix.$this->table.$this->suffix;
+        return $this->table;
     }
 }

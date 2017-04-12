@@ -21,6 +21,7 @@ class MigrationTest extends PHPUnit_Framework_TestCase
         $this->pdo = new PDO('mysql:dbname=ci', 'root');
         $this->table = new Table('hello');
         $this->table->addColumn(new Column('created', 'datetime'));
+        $this->table->addColumn(new Column('updated', 'datetime'));
     }
 
     public function testMigrationCreateTableSchema()
@@ -39,7 +40,7 @@ class MigrationTest extends PHPUnit_Framework_TestCase
     public function testMigrationUpdateTableSchema()
     {
         $migration = new Migration($this->pdo);
-        $this->table->addColumn(new Column('updated', 'datetime'));
+        $this->table->addColumn(new Column('date', 'int', 10));
         echo $migration->update($this->table);
     }
 }

@@ -46,7 +46,11 @@ class Migration
             }
             $config = Yaml::parse(file_get_contents($file));
             unset($file);
-            $pdo = new PDO(sprintf('mysql:host=%s;dbname=%s', $config['host'], $config['dbname']), $config['user'], $config['pass']);
+            $pdo = new PDO(
+                sprintf('mysql:host=%s;dbname=%s', $config['host'], $config['dbname']),
+                $config['user'],
+                $config['pass']
+            );
         }
 
         if ( ! file_exists($this->cachePath)) {
@@ -62,7 +66,7 @@ class Migration
      */
     final protected function getCache(Table $table)
     {
-        if (!$this->hasCache($table)) {
+        if ( ! $this->hasCache($table)) {
             return false;
         }
         $cache = file_get_contents($this->cachePath.'/'.$table->getTableName());
@@ -225,9 +229,7 @@ WHERE
         $keys = [];
 
         foreach ($table->getColumns() as $name => $column) {
-            $columns[] = preg_replace(
-                '/\s{2,}/',
-                ' ',
+            $columns[] =
                 implode(
                     ' ',
                     [
@@ -240,8 +242,7 @@ WHERE
                         ($column->isIncrement()) ? 'AUTO_INCREMENT' : '',
                         'COMMENT "'.$column->getComment().'"',
                     ]
-                )
-            );
+                );
 
             if (null !== $column->getKey()) {
                 if ($column->isPrimary()) {
@@ -287,25 +288,37 @@ WHERE
 
         foreach ($table->getColumns() as $name => $column) {
             if (array_key_exists($column->getName(), $cache)) {
-                continue;
+                if ( ! $column->equal($cache[$name])) {
+                    $change[] = implode(
+                        ' ',
+                        [
+                            'ALTER TABLE `'.$table->getTableName().'` CHANGE `'.$name.'` `'.$column->getName().'`',
+                            $column->getType().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
+                            ($column->isUnsigned()) ? 'UNSIGNED' : '',
+                            ($column->isNullable() ? '' : ('NOT NULL')),
+                            (( ! empty($column->getDefault()) && ! $column->isIncrement() && ! $column->isUnique(
+                                ) && ! $column->isPrimary()) ? 'DEFAULT "'.$column->getDefault().'"' : ''),
+                            ($column->isPrimary()) ? 'AUTO_INCREMENT' : '',
+                            'COMMENT "'.$column->getComment().'";',
+                        ]
+                    );
+                }
+            } else {
+                $add[] =
+                    implode(
+                        ' ',
+                        [
+                            'ALTER TABLE `'.$table->getTableName().'` ADD `'.$column->getName().'`',
+                            $column->getType().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
+                            ($column->isUnsigned()) ? 'UNSIGNED' : '',
+                            ($column->isNullable() ? '' : ('NOT NULL')),
+                            (( ! empty($column->getDefault()) && ! $column->isIncrement() && ! $column->isUnique(
+                                ) && ! $column->isPrimary()) ? 'DEFAULT "'.$column->getDefault().'"' : ''),
+                            ($column->isPrimary()) ? 'AUTO_INCREMENT' : '',
+                            'COMMENT "'.$column->getComment().'";',
+                        ]
+                    );
             }
-            $add[] = str_replace(
-                '  ',
-                ' ',
-                implode(
-                    ' ',
-                    [
-                        'ALTER TABLE `'.$table->getTableName().'` ADD `'.$column->getName().'`',
-                        $column->getType().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
-                        ($column->isUnsigned()) ? 'UNSIGNED' : '',
-                        ($column->isNullable() ? '' : ('NOT NULL')),
-                        (( ! empty($column->getDefault()) && ! $column->isIncrement() && ! $column->isUnique(
-                            ) && ! $column->isPrimary()) ? 'DEFAULT "'.$column->getDefault().'"' : ''),
-                        ($column->isPrimary()) ? 'AUTO_INCREMENT' : '',
-                        'COMMENT "'.$column->getComment().'";',
-                    ]
-                )
-            );
             if (null !== $column->getKey()) {
                 $keys[] = implode(
                     ' ',
@@ -318,49 +331,17 @@ WHERE
             }
         }
 
-        // Alter table change column.
-        foreach ($table->getAlterColumns() as $name => $field) {
-            if (array_key_exists($name, $cache)) {
-                if ( ! $cache[$name]->equal($field)) {
-                    $change[] = implode(
-                        ' ',
-                        [
-                            'ALTER TABLE `'.$table->getTableName().'` CHANGE `'.$name.'` `'.$field->getName().'`',
-                            $field->getType().'('.$field->getLength().')',
-                            ($field->isUnsigned()) ? 'UNSIGNED' : '',
-                            ($field->isNullable() ? '' : ('NOT NULL')),
-                            (( ! empty($field->getDefault()) && ! $field->isIncrement() && ! $field->isUnique(
-                                ) && ! $field->isPrimary()) ? 'DEFAULT "'.$field->getDefault().'"' : ''),
-                            ($field->isPrimary()) ? 'AUTO_INCREMENT' : '',
-                            'COMMENT "'.$field->getComment().'";',
-                        ]
-                    );
-                    if (null !== $field->getKey()) {
-                        $keys[] = implode(
-                            ' ',
-                            [
-                                'ALTER TABLE `'.$table->getTableName().'` ADD '.($field->getKey()->isPrimary(
-                                ) ? 'PRIMARY KEY' : $field->getKey()->getKey()),
-                                '`index_'.$field->getName().'` ('.$field->getName().');',
-                            ]
-                        );
-                    }
-                }
-            }
-        }
-
         // Alter table drop column and drop map key.
-        foreach ($table->getDropColumns() as $name => $field) {
-            if ( ! array_key_exists($name, $cache)) {
-                continue;
+        foreach ($cache as $name => $column) {
+            if (false === $table->getColumn($name)) {
+                $drop[] = implode(
+                    ' ',
+                    [
+                        'ALTER TABLE `'.$table->getTableName().'`',
+                        'DROP COLUMN `'.$column->getName().'`;',
+                    ]
+                );
             }
-            $drop[] = implode(
-                ' ',
-                [
-                    'ALTER TABLE `'.$table->getTableName().'`',
-                    'DROP `'.$field.'`;',
-                ]
-            );
         }
 
         $this->saveCache($table);
