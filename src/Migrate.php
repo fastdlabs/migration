@@ -76,6 +76,7 @@ class Migrate extends Command
                     include_once $file;
                     $migration = new $migration();
                     $table = $migration->setUp();
+                    $this->renderTableSchema($output, $table);
                     $schema->update($table);
                 }
                 break;

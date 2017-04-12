@@ -113,7 +113,7 @@ class Schema
     public function extract($table = null)
     {
         $sql = 'SHOW TABLES';
-        if (!empty($table)) {
+        if ( ! empty($table)) {
             $sql .= ' LIKE "'.$table.'"';
         }
         $tables = $this->pdo
@@ -365,10 +365,18 @@ WHERE
         );
     }
 
+    /**
+     * @param $name
+     * @param $callback
+     * @return mixed
+     */
     public static function table($name, $callback)
     {
         $table = new Table($name);
         static::$tables[$name] = $table;
-        return call_user_func($callback, $table);
+
+        call_user_func($callback, $table);
+
+        return $table;
     }
 }
