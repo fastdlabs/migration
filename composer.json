@@ -16,9 +16,6 @@
     "autoload": {
         "psr-4": {
             "FastD\\Migration\\": "src"
-        },
-        "files": [
-            "helpers.php"
-        ]
+        }
     }
 }

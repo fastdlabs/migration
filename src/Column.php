@@ -77,11 +77,6 @@ class Column
     protected $name;
 
     /**
-     * @var string
-     */
-    protected $alias;
-
-    /**
      * @var int
      */
     protected $length;
@@ -294,25 +289,6 @@ class Column
         $this->key = $key;
 
         $key->setField($this);
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getAlias()
-    {
-        return empty($this->alias) ? rename($this->name) : $this->alias;
-    }
-
-    /**
-     * @param string $alias
-     * @return $this
-     */
-    public function setAlias($alias)
-    {
-        $this->alias = $alias;
 
         return $this;
     }
