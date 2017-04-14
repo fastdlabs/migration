@@ -25,15 +25,12 @@ use Symfony\Component\Yaml\Yaml;
  */
 class Migrate extends Command
 {
-    /**
-     *
-     */
     public function configure()
     {
         $this
             ->setName('migrate')
             ->addArgument('behavior', InputArgument::REQUIRED, 'migration behavior')
-            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'tables path', './')
+            ->addOption('path', 'p', InputOption::VALUE_IS_ARRAY, 'tables path', './')
             ->addArgument('table', InputArgument::OPTIONAL, 'migration table name', null);
     }
 
