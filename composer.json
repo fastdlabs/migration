@@ -17,5 +17,10 @@
         "psr-4": {
             "FastD\\Migration\\": "src"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "": "tests/tables"
+        }
     }
 }

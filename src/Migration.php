@@ -9,10 +9,19 @@
 
 namespace FastD\Migration;
 
-
+/**
+ * Class Migration
+ * @package FastD\Migration
+ */
 abstract class Migration
 {
+    /**
+     * @return Table
+     */
     abstract public function setUp();
 
+    /**
+     * @return mixed
+     */
     abstract public function dataSet();
 }

@@ -34,6 +34,11 @@ class Schema
     protected static $tables = [];
 
     /**
+     * @var array
+     */
+    protected $config = [];
+
+    /**
      * Migration constructor.
      * @param PDO|null $pdo
      */
@@ -45,6 +50,7 @@ class Schema
                 throw new \RuntimeException('cannot such config file '.$file);
             }
             $config = Yaml::parse(file_get_contents($file));
+            $this->config = $config;
             unset($file);
             $pdo = new PDO(
                 sprintf('mysql:host=%s;dbname=%s', $config['host'], $config['dbname']),
@@ -58,6 +64,14 @@ class Schema
         }
 
         $this->pdo = $pdo;
+    }
+
+    /**
+     * @return array
+     */
+    public function getConfig()
+    {
+        return $this->config;
     }
 
     /**
@@ -219,9 +233,9 @@ WHERE
      * @param bool $force
      * @return string
      */
-    public function update(Table $table, $force = false)
+    public function update(Table $table, $force = true)
     {
-        return ! $this->hasCache($table) ? $this->create($table, $force) : $this->alter($table);
+        return !$this->hasCache($table) ? $this->create($table, $force) : $this->alter($table);
     }
 
     /**
@@ -266,6 +280,7 @@ WHERE
         }
 
         $schema = $force ? ('DROP TABLE IF EXISTS `'.$table->getTableName().'`;'.PHP_EOL.PHP_EOL) : '';
+
         $schema .= 'CREATE TABLE `'.$table->getTableName().'` IF NOT EXISTS `'.$table->getTableName().'` (';
         $schema .= PHP_EOL.implode(','.PHP_EOL, $columns).(empty($keys) ? PHP_EOL : (','.PHP_EOL.implode(
                     ','.PHP_EOL,
@@ -274,9 +289,14 @@ WHERE
         $schema .= ') ENGINE '.$table->getEngine().' CHARSET '.$table->getCharset().' COMMENT "'.$table->getComment(
             ).'";';
 
+        if (false === ($result = $this->pdo->exec($schema))) {
+            $error = $this->pdo->errorInfo();
+            throw new \RuntimeException($error[0] . ' ' . $error[2]);
+        }
+
         $this->saveCache($table);
 
-        return $schema;
+        return $result;
     }
 
     /**
@@ -350,9 +370,7 @@ WHERE
             }
         }
 
-        $this->saveCache($table);
-
-        return implode(
+        $schema = implode(
             PHP_EOL,
             array_filter(
                 [
@@ -363,6 +381,19 @@ WHERE
                 ]
             )
         );
+
+        $result = 0;
+
+        if (!empty($schema)) {
+            if (false === ($result = $this->pdo->exec($schema))) {
+                $error = $this->pdo->errorInfo();
+                throw new \RuntimeException($error[0] . ' ' . $error[2]);
+            }
+
+            $this->saveCache($table);
+        }
+
+        return $result;
     }
 
     /**

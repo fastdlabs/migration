@@ -29,8 +29,9 @@ class Migrate extends Command
     {
         $this
             ->setName('migrate')
+            ->setDescription('Migration database to php')
             ->addArgument('behavior', InputArgument::REQUIRED, 'migration behavior')
-            ->addOption('path', 'p', InputOption::VALUE_IS_ARRAY, 'tables path', './')
+            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'tables path', './')
             ->addArgument('table', InputArgument::OPTIONAL, 'migration table name', null);
     }
 
@@ -42,7 +43,7 @@ class Migrate extends Command
     public function execute(InputInterface $input, OutputInterface $output)
     {
         $file = getcwd().'/migrate.yml';
-        if ( ! file_exists($file)) {
+        if (! file_exists($file)) {
             $helper = $this->getHelper('question');
             $host = $helper->ask($input, $output, new Question('MySQL host (<info>127.0.0.1</info>)?', '127.0.0.1'));
             $user = $helper->ask($input, $output, new Question('MySQL user (<info>root</info>)?', 'root'));
@@ -61,23 +62,34 @@ class Migrate extends Command
             file_put_contents($file, $content);
         }
         $path = realpath($input->getParameterOption(['--path', '-p']));
-        if ( ! file_exists($path)) {
+        if (! file_exists($path)) {
             mkdir($path, 0755, true);
         }
         $tableName = $input->getArgument('table');
         $schema = new Schema();
+        $config = $schema->getConfig();
+        $output->writeln('<info>Config: </info>');
+        $output->writeln(Yaml::dump($config));
         switch ($input->getArgument('behavior')) {
             case 'run':
                 foreach (glob($path.'/*.php') as $file) {
-                    $migration = pathinfo($file, PATHINFO_FILENAME) . PHP_EOL;
+                    $migration = pathinfo($file, PATHINFO_FILENAME);
                     include_once $file;
                     $migration = new $migration();
-                    $table = $migration->setUp();
-                    $this->renderTableSchema($output, $table);
-                    $schema->update($table);
+                    if ($migration instanceof Migration) {
+                        $table = $migration->setUp();
+                        if ($schema->update($table)) {
+                            $output->writeln(sprintf('  == Table <info>%s:</info> <comment>migrating</comment> <info>done.</info>', $table->getTableName()));
+                        } else {
+                            $output->writeln(sprintf('  == Table <info>%s:</info> <comment>nothing todo.</comment>', $table->getTableName()));
+                        }
+                        $this->renderTableSchema($output, $table)->render();
+                    } else {
+                        $output->writeln(sprintf('<comment>Warning: Mission table %s</comment>', $migration));
+                    }
                 }
                 break;
-            case 'extract':
+            case 'dump':
                 $tables = $schema->extract($tableName);
                 foreach ($tables as $table) {
                     $output->writeln(sprintf('Table: <info>%s</info>', $table->getTableName()));
@@ -106,11 +118,14 @@ class Migrate extends Command
                     $column->isNullable() ? 'YES' : 'NO',
                     null === $column->getKey() ? '' : $column->getKey()->getKey(),
                     $column->getDefault(),
-                    'comment:'.$column->getComment(),
+                    (null == $column->getComment()) ? '' : ('comment:'. $column->getComment()),
                 ]
             );
         }
 
         return $t;
     }
+
+    protected function dump(Table $table)
+    {}
 }
