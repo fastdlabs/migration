@@ -32,8 +32,9 @@ class Migrate extends Command
             ->setName('migrate')
             ->setDescription('Migration database to php')
             ->addArgument('behavior', InputArgument::REQUIRED, 'migration behavior')
+            ->addArgument('table', InputArgument::OPTIONAL, 'migration table name', null)
             ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'tables path', './')
-            ->addArgument('table', InputArgument::OPTIONAL, 'migration table name', null);
+        ;
     }
 
     /**

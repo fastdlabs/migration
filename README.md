@@ -2,9 +2,19 @@
 
 轻量，简单又好用的数据库迁移工具。支持创建、修改、数据集填充等基础功能。
 
-### 文档
+### 使用
 
-* [简体中文](docs/zh_CN/readme.md)
+##### Dump
+ 
+```
+php migrate migrate dump [-p|--path]
+```
+
+##### Run
+
+```
+php migrate migrate run [-p|--path]
+```
 
 ### Support
 
