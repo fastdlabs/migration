@@ -7,12 +7,16 @@
 ![usage](docs/2017-04-29%2016.26.07.gif)
 
 ##### Dump
+
+从数据库已有表中迁移到 PHP 文件
  
 ```
 php migrate migrate dump [-p|--path]
 ```
 
 ##### Run
+
+将PHP文件迁移到 MySQL 数据表
 
 ```
 php migrate migrate run [-p|--path]
