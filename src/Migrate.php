@@ -10,6 +10,7 @@
 namespace FastD\Migration;
 
 
+use SebastianBergmann\CodeCoverage\Report\PHP;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table as SymfonyTable;
 use Symfony\Component\Console\Input\InputArgument;
@@ -92,9 +93,14 @@ class Migrate extends Command
                 $tables = $schema->extract($tableName);
                 foreach ($tables as $table) {
                     $output->writeln(sprintf('Table: <info>%s</info>', $table->getTableName()));
-                    $content = $this->dump($table);
                     $name = $this->classRename($table);
-                    file_put_contents($path . '/' . $name . '.php', $content);
+                    $file = $path . '/' . $name . '.php';
+                    $content = $this->dump($table);
+                    $contentHash = hash('md5', $content);
+                    $fileHash = hash_file('md5', $file);
+                    if (!file_exists($file) || $contentHash !== $fileHash) {
+                        file_put_contents($path . '/' . $name . '.php', $content);
+                    }
                     $this->renderTableSchema($output, $table)->render();
                 }
                 break;
@@ -192,6 +198,5 @@ class {$name} extends Migration
     }
 }
 MIGRATION;
-
     }
 }

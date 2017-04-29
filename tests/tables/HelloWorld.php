@@ -2,6 +2,7 @@
 
 use \FastD\Migration\Migration;
 use \FastD\Migration\Column;
+use \FastD\Migration\Table;
 
 
 class HelloWorld extends Migration
@@ -11,7 +12,7 @@ class HelloWorld extends Migration
      */
     public function setUp()
     {
-        $table = new \FastD\Migration\Table('hello_world');
+        $table = new Table('hello_world');
 
         $table
             ->addColumn(new Column('id', 'int'))
