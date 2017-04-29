@@ -10,7 +10,6 @@
 namespace FastD\Migration;
 
 
-use SebastianBergmann\CodeCoverage\Report\PHP;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table as SymfonyTable;
 use Symfony\Component\Console\Input\InputArgument;
@@ -80,28 +79,28 @@ class Migrate extends Command
                     if ($migration instanceof Migration) {
                         $table = $migration->setUp();
                         if ($schema->update($table)) {
-                            $output->writeln(sprintf('  == Table <info>%s:</info> <comment>migrating</comment> <info>done.</info>', $table->getTableName()));
+                            $output->writeln(sprintf('  <info>==</info> Table <info>"%s"</info> <comment>migrating</comment> <info>done.</info>', $table->getTableName()));
                         } else {
-                            $output->writeln(sprintf('  == Table <info>%s:</info> <comment>nothing todo.</comment>', $table->getTableName()));
+                            $output->writeln(sprintf('  <info>==</info> Table <info>"%s"</info> <comment>nothing todo.</comment>', $table->getTableName()));
                         }
                         $this->renderTableSchema($output, $table)->render();
                     } else {
-                        $output->writeln(sprintf('<comment>Warning: Mission table %s</comment>', $migration));
+                        $output->writeln(sprintf('<comment>Warning: Mission table "%s"</comment>', $migration));
                     }
                 }
                 break;
             case 'dump':
                 $tables = $schema->extract($tableName);
                 foreach ($tables as $table) {
-                    $output->writeln(sprintf('Table: <info>%s</info>', $table->getTableName()));
                     $name = $this->classRename($table);
                     $file = $path . '/' . $name . '.php';
                     $content = $this->dump($table);
                     $contentHash = hash('md5', $content);
-                    $fileHash = hash_file('md5', $file);
-                    if (!file_exists($file) || $contentHash !== $fileHash) {
-                        file_put_contents($path . '/' . $name . '.php', $content);
+                    if (!file_exists($file) || (file_exists($file) && $contentHash !== hash_file('md5', $file))) {
+                        file_put_contents($file, $content);
                     }
+
+                    $output->writeln(sprintf('  <info>==</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>', $table->getTableName()));
                     $this->renderTableSchema($output, $table)->render();
                 }
                 break;
