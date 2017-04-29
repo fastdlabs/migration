@@ -66,16 +66,14 @@ class Table
     }
 
     /**
-     * Add column.
-     *
-     * @param Column $column
-     * @param Index $key
+     * @param $column
+     * @param $type
      * @return $this
      */
-    public function addColumn(Column $column, Index $key = null)
+    public function addColumn($column, $type = 'varchar')
     {
-        if (null !== $key) {
-            $column->setKey($key);
+        if (!($column instanceof Column)) {
+            $column = new Column($column, $type);
         }
 
         $this->columns[$column->getName()] = $column;

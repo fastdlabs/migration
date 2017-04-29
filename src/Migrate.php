@@ -68,7 +68,6 @@ class Migrate extends Command
         $tableName = $input->getArgument('table');
         $schema = new Schema();
         $config = $schema->getConfig();
-        $output->writeln('<info>Config: </info>');
         $output->writeln(Yaml::dump($config));
         switch ($input->getArgument('behavior')) {
             case 'run':
@@ -93,6 +92,9 @@ class Migrate extends Command
                 $tables = $schema->extract($tableName);
                 foreach ($tables as $table) {
                     $output->writeln(sprintf('Table: <info>%s</info>', $table->getTableName()));
+                    $content = $this->dump($table);
+                    $name = $this->classRename($table);
+                    file_put_contents($path . '/' . $name . '.php', $content);
                     $this->renderTableSchema($output, $table)->render();
                 }
                 break;
@@ -126,6 +128,70 @@ class Migrate extends Command
         return $t;
     }
 
+    /**
+     * @param Table $table
+     * @return string
+     */
+    protected function classRename(Table $table)
+    {
+        $name = $table->getTableName();
+        if (strpos($name, '_')) {
+            $arr = explode('_', $name);
+            $name = array_shift($arr);
+            foreach ($arr as $value) {
+                $name .= ucfirst($value);
+            }
+        }
+        return ucfirst($name);
+    }
+
+    /**
+     * @param Table $table
+     * @return string
+     */
     protected function dump(Table $table)
-    {}
+    {
+        $name = $this->classRename($table);
+
+        $code = ['$table'];
+        foreach ($table->getColumns() as $column) {
+            $code[] = str_repeat(' ', 12) . '->addColumn(new Column(\'' . $column->getName() . '\', \'' . $column->getType() . '\'))';
+        }
+        $code[] = str_repeat(' ', 8) . ';';
+
+        $codeString = implode(PHP_EOL, $code);
+
+        return <<<MIGRATION
+<?php
+
+use \FastD\Migration\Migration;
+use \FastD\Migration\Column;
+use \FastD\Migration\Table;
+
+
+class {$name} extends Migration
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function setUp()
+    {
+        \$table = new Table('{$table->getTableName()}');
+
+        {$codeString}
+
+        return \$table;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function dataSet()
+    {
+        
+    }
+}
+MIGRATION;
+
+    }
 }

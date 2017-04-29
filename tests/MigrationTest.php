@@ -20,8 +20,8 @@ class MigrationTest extends PHPUnit_Framework_TestCase
     {
         $this->pdo = new PDO('mysql:dbname=ci', 'root');
         $this->table = new Table('hello');
-        $this->table->addColumn(new Column('created', 'datetime'));
-        $this->table->addColumn(new Column('updated', 'datetime'));
+        $this->table->addColumn('created', 'datetime')->setDefault('default');
+        $this->table->addColumn('updated', 'datetime');
     }
 
     public function testMigrationCreateTableSchema()
