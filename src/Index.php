@@ -60,7 +60,7 @@ class Index
      * @param Column $field
      * @return $this
      */
-    public function setField(Column $field)
+    public function withColumn(Column $field)
     {
         $this->field = $field;
 
@@ -70,7 +70,7 @@ class Index
     /**
      * @return null|string
      */
-    public function getField()
+    public function getColumn()
     {
         return $this->field;
     }

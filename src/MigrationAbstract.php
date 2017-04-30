@@ -13,7 +13,7 @@ namespace FastD\Migration;
  * Class Migration
  * @package FastD\Migration
  */
-abstract class Migration
+abstract class MigrationAbstract
 {
     /**
      * @return Table

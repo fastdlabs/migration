@@ -10,6 +10,7 @@
 namespace FastD\Migration;
 
 
+use PDO;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table as SymfonyTable;
 use Symfony\Component\Console\Input\InputArgument;
@@ -25,15 +26,76 @@ use Symfony\Component\Yaml\Yaml;
  */
 class Migrate extends Command
 {
+    /**
+     * @var string
+     */
+    protected $configFile;
+
     public function configure()
     {
+        $this->configFile = getcwd().'/migrate.yml';
+
         $this
             ->setName('migrate')
             ->setDescription('Migration database to php')
-            ->addArgument('behavior', InputArgument::REQUIRED, 'migration behavior')
-            ->addArgument('table', InputArgument::OPTIONAL, 'migration table name', null)
-            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'tables path', './')
+            ->addArgument('behavior', InputArgument::REQUIRED, 'Migration behavior <comment>[dump|run|cache-clear]</comment>')
+            ->addArgument('table', InputArgument::OPTIONAL, 'Migration table name', null)
+            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './')
+            ->addOption('info', 'i', InputOption::VALUE_NONE, 'Show table info')
         ;
+    }
+
+    /**
+     * @param array $config
+     * @return \PDO
+     */
+    protected function createConnection(array $config = null)
+    {
+        if (null === $config) {
+            if (!file_exists($this->configFile)) {
+                throw new \RuntimeException('cannot such config file '.$this->configFile);
+            }
+
+            $config = Yaml::parse(file_get_contents($this->configFile));
+        }
+
+        return new PDO(
+            sprintf('mysql:host=%s;dbname=%s', $config['host'], $config['dbname']),
+            $config['user'],
+            $config['pass']
+        );
+    }
+
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return array
+     */
+    protected function askConfig(InputInterface $input, OutputInterface $output)
+    {
+        $helper = $this->getHelper('question');
+        $host = $helper->ask($input, $output, new Question('MySQL host (<info>127.0.0.1</info>)?', '127.0.0.1'));
+        $user = $helper->ask($input, $output, new Question('MySQL user (<info>root</info>)?', 'root'));
+        $password = $helper->ask($input, $output, new Question('MySQL password (<info>null</info>)?', null));
+        $dbname = $helper->ask($input, $output, new Question('MySQL database (<info>null</info>)?', null));
+        $charset = $helper->ask($input, $output, new Question('MySQL charset (<info>utf8</info>)?', 'utf8'));
+        return [
+            'host' => $host,
+            'user' => $user,
+            'pass' => $password,
+            'dbname' => $dbname,
+            'charset' => $charset,
+        ];
+    }
+
+    /**
+     * @param $path
+     */
+    protected function targetDirectory($path)
+    {
+        if (! file_exists($path)) {
+            mkdir($path, 0755, true);
+        }
     }
 
     /**
@@ -43,66 +105,25 @@ class Migrate extends Command
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $file = getcwd().'/migrate.yml';
-        if (! file_exists($file)) {
-            $helper = $this->getHelper('question');
-            $host = $helper->ask($input, $output, new Question('MySQL host (<info>127.0.0.1</info>)?', '127.0.0.1'));
-            $user = $helper->ask($input, $output, new Question('MySQL user (<info>root</info>)?', 'root'));
-            $password = $helper->ask($input, $output, new Question('MySQL password (<info>null</info>)?', null));
-            $dbname = $helper->ask($input, $output, new Question('MySQL database (<info>null</info>)?', null));
-            $charset = $helper->ask($input, $output, new Question('MySQL charset (<info>utf8</info>)?', 'utf8'));
-            $content = Yaml::dump(
-                [
-                    'host' => $host,
-                    'user' => $user,
-                    'pass' => $password,
-                    'dbname' => $dbname,
-                    'charset' => $charset,
-                ]
-            );
-            file_put_contents($file, $content);
+        if (! file_exists($this->configFile)) {
+            $config = $this->askConfig($input, $output);
+            $config = Yaml::dump($config);
+            file_put_contents($this->configFile, $config);
+        } else {
+            $config = file_get_contents($this->configFile);
         }
-        $path = realpath($input->getParameterOption(['--path', '-p']));
-        if (! file_exists($path)) {
-            mkdir($path, 0755, true);
-        }
-        $tableName = $input->getArgument('table');
-        $schema = new Schema();
-        $config = $schema->getConfig();
-        $output->writeln(Yaml::dump($config));
+
+        $output->writeln($config);
+
         switch ($input->getArgument('behavior')) {
+            case 'cache-clear':
+                $this->cacheClear($input, $output);
+                break;
             case 'run':
-                foreach (glob($path.'/*.php') as $file) {
-                    $migration = pathinfo($file, PATHINFO_FILENAME);
-                    include_once $file;
-                    $migration = new $migration();
-                    if ($migration instanceof Migration) {
-                        $table = $migration->setUp();
-                        if ($schema->update($table)) {
-                            $output->writeln(sprintf('  <info>==</info> Table <info>"%s"</info> <comment>migrating</comment> <info>done.</info>', $table->getTableName()));
-                        } else {
-                            $output->writeln(sprintf('  <info>==</info> Table <info>"%s"</info> <comment>nothing todo.</comment>', $table->getTableName()));
-                        }
-                        $this->renderTableSchema($output, $table)->render();
-                    } else {
-                        $output->writeln(sprintf('<comment>Warning: Mission table "%s"</comment>', $migration));
-                    }
-                }
+                $this->move($input, $output);
                 break;
             case 'dump':
-                $tables = $schema->extract($tableName);
-                foreach ($tables as $table) {
-                    $name = $this->classRename($table);
-                    $file = $path . '/' . $name . '.php';
-                    $content = $this->dump($table);
-                    $contentHash = hash('md5', $content);
-                    if (!file_exists($file) || (file_exists($file) && $contentHash !== hash_file('md5', $file))) {
-                        file_put_contents($file, $content);
-                    }
-
-                    $output->writeln(sprintf('  <info>==</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>', $table->getTableName()));
-                    $this->renderTableSchema($output, $table)->render();
-                }
+                $this->dump($input, $output);
                 break;
         }
 
@@ -114,7 +135,7 @@ class Migrate extends Command
      * @param Table $table
      * @return SymfonyTable
      */
-    protected function renderTableSchema(OutputInterface $output, Table $table)
+    protected function renderTableInfo(OutputInterface $output, Table $table)
     {
         $t = new SymfonyTable($output);
         $t->setHeaders(array('Field', 'Type', 'Nullable', 'Key', 'Default', 'Extra'));
@@ -122,7 +143,7 @@ class Migrate extends Command
             $t->addRow(
                 [
                     $column->getName(),
-                    $column->getType().($column->getLength() <= 0 ? '' : '('.$column->getLength().')'),
+                    $column->getDataFormat().($column->getLength() <= 0 ? '' : '('.$column->getLength().')'),
                     $column->isNullable() ? 'YES' : 'NO',
                     null === $column->getKey() ? '' : $column->getKey()->getKey(),
                     $column->getDefault(),
@@ -151,17 +172,102 @@ class Migrate extends Command
         return ucfirst($name);
     }
 
+
+    /**
+     * Clean table cache file
+     *
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     */
+    public function cacheClear(InputInterface $input, OutputInterface $output)
+    {
+        foreach (glob(__DIR__ . '/.cache/tables/*') as $file) {
+            unlink($file);
+            $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> <comment>cache is clean</comment> <info>done.</info>', pathinfo($file, PATHINFO_FILENAME)));
+        }
+    }
+
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     */
+    public function move(InputInterface $input, OutputInterface $output)
+    {
+        $builder = new TableBuilder($this->createConnection());
+        $path = realpath($input->getParameterOption(['--path', '-p']));
+
+        foreach (glob($path.'/*.php') as $file) {
+            $className = pathinfo($file, PATHINFO_FILENAME);
+            include_once $file;
+            $migration = new $className();
+            if ($migration instanceof MigrationAbstract) {
+                $table = $migration->setUp();
+                try {
+                    // not change
+                    if ('' === $builder->update($table)->getTableInfo()) {
+                        $output->writeln(sprintf('  <comment>!!</comment> Table <info>"%s"</info> <comment>no change.</comment>', $table->getTableName()));
+                    } else {
+                        $builder->update($table)->execute();
+                        $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> <comment>migrating</comment> <info>done.</info>', $table->getTableName()));
+                    }
+                    if ($input->hasParameterOption(['--info', '-i'])) {
+                        $this->renderTableInfo($output, $table)->render();
+                    }
+                } catch (\PDOException $e) {
+                    $output->writeln(sprintf("<fg=red>✗</> %s \n  File: %s\n  Line: %s\n", $e->getMessage(), $e->getFile(), $e->getLine()));
+                }
+            } else {
+                $output->writeln(sprintf('  <comment>!!</comment> Warning: Migrate class "<comment>%s</comment>" is not implement "<comment>%s</comment>"', $className, MigrationAbstract::class));
+            }
+        }
+    }
+
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     */
+    public function dump(InputInterface $input, OutputInterface $output)
+    {
+        $builder = new TableBuilder($this->createConnection());
+
+        $path = realpath($input->getParameterOption(['--path', '-p']));
+        $tables = $builder->extract($tableName = $input->getArgument('table'));
+        foreach ($tables as $table) {
+            $name = $this->classRename($table);
+            $file = $path . '/' . $name . '.php';
+            $content = $this->dumpPhpFile($table);
+            $contentHash = hash('md5', $content);
+            if (!file_exists($file) || (file_exists($file) && $contentHash !== hash_file('md5', $file))) {
+                file_put_contents($file, $content);
+                $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>', $table->getTableName()));
+            } else {
+                $output->writeln(sprintf('<comment>Warning: Dump table "%s" is not change</comment>', $table->getTableName()));
+            }
+            if ($input->hasParameterOption(['--info', '-i'])) {
+                $this->renderTableInfo($output, $table)->render();
+            }
+        }
+    }
+
     /**
      * @param Table $table
      * @return string
      */
-    protected function dump(Table $table)
+    protected function dumpPhpFile(Table $table)
     {
         $name = $this->classRename($table);
 
         $code = ['$table'];
         foreach ($table->getColumns() as $column) {
-            $code[] = str_repeat(' ', 12) . '->addColumn(new Column(\'' . $column->getName() . '\', \'' . $column->getType() . '\'))';
+            $code[] = str_repeat(' ', 12) . sprintf(
+                "->addColumn(new Column('%s', '%s', %s, %s, '%s', '%s'))",
+                $column->getName(),
+                $column->getDataFormat(),
+                null === $column->getLength() ? 'null' : $column->getLength(),
+                false === $column->isNullable() ? 'false' : 'true',
+                $column->getDefault(),
+                $column->getComment()
+                );
         }
         $code[] = str_repeat(' ', 8) . ';';
 
@@ -170,12 +276,12 @@ class Migrate extends Command
         return <<<MIGRATION
 <?php
 
-use \FastD\Migration\Migration;
+use \FastD\Migration\MigrationAbstract;
 use \FastD\Migration\Column;
 use \FastD\Migration\Table;
 
 
-class {$name} extends Migration
+class {$name} extends MigrationAbstract
 {
     /**
      * {@inheritdoc}

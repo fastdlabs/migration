@@ -36,8 +36,6 @@ if (!defined('COMPOSER_INSTALL')) {
 
 include COMPOSER_INSTALL;
 
-$app = new Application('Migration', '0.1.0');
+$migrator = new \FastD\Migration\Migrator();
 
-$app->addCommands([new Migrate()]);
-
-$app->run();
+$migrator->run();

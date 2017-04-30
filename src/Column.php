@@ -16,64 +16,49 @@ namespace FastD\Migration;
 class Column
 {
     /**
-     * int
+     * @var array
      */
-    const BIT = 'bit';
-    const BOOL = 'bool';
-    const TINY_INT = 'tinyint';
-    const SMALL_INT = 'smallint';
-    const MEDIUM_INT = 'mediumint';
-    const INT = 'int';
-    const BIG_INT = 'bigint';
+    protected $fields = [
+        'bit' => ['bit', 10, 0],
+        'bool' => ['boo', 1, 0],
+        'tinyint' => ['tinyint', 4, 0],
+        'smallint' => ['smallint', 6, 0],
+        'mediumint' => ['mediumint', 8, 0],
+        'int' => ['int', 11, 0],
+        'bigint' => ['bigint', 11, 0],
+        'float' => ['float', 10, 0],
+        'double' => ['double', 10, 0],
+        'decimal' => ['decimal', 1, 0],
+        'char' => ['char', 100, ''],
+        'varchar' => ['varchar', 200, ''],
+        'text' => ['text', null, null],
+        'tinytext' => ['tinytext', null, null],
+        'mediumtext' => ['mediumtext', null, null],
+        'longtext' => ['longtext', null, null],
+        'tinyblob' => ['tinyblob', null, null],
+        'blob' => ['blob', null, null],
+        'mediumblob' => ['mediumblob', null, null],
+        'longblob' => ['longblob', null, null],
+        'date' => ['date', 1, 0],
+        'datetime' => ['datetime', null, 'NOW()'],
+        'timestamp' => ['timestamp', null, 'CURRENT_TIMESTAMP'],
+        'time' => ['time', 1, 0],
+        'year' => ['year', 1, 0],
+        'binary' => ['binary', 1, 0],
+        'varbinary' => ['varbinary', 1, 0],
+        'emum' => ['emum', 1, 0],
+        'set' => ['set', 1, 0],
+        'geometry' => ['geometry', 1, 0],
+        'point' => ['point', 1, 0],
+        'multipoint' => ['multipoint', 1, 0],
+        'linestring' => ['linestring', 1, 0],
+        'multilinestring' => ['multilinestring', 1, 0],
+        'polygon' => ['polygon', 1, 0],
+        'geometrycollection' => ['geometrycollection', 1, 0],
+        'json' => ['varchar', 200, ''],
+        'array' => ['varchar', 200, ''],
+    ];
 
-    /**
-     * float
-     */
-    const FLOAT = 'float';
-    const DOUBLE = 'double';
-    const DECIMAL = 'decimal';
-
-    /**
-     * char
-     */
-    const CHAR = 'char';
-    const VARCHAR = 'varchar';
-    const TEXT = 'text';
-    const TINY_TEXT = 'tinytext';
-    const MEDIUM_TEXT = 'mediumtext';
-    const LONG_TEXT = 'longtext';
-    const TINY_BLOB = 'tinyblob';
-    const BLOB = 'blob';
-    const MEDIUM_BLOB = 'mediumblob';
-    const LONG_BLOB = 'longblob';
-
-    /**
-     * date
-     */
-    const DATE = 'date';
-    const DATETIME = 'datetime';
-    const TIMESTAMP = 'timestamp';
-    const TIME = 'time';
-    const YEAR = 'year';
-
-    /**
-     * other
-     */
-    const BINARY = 'binary';
-    const VARBINARY = 'varbinary';
-    const ENUM = 'emum';
-    const SET = 'set';
-    const GEOMETRY = 'geometry';
-    const POINT = 'point';
-    const MULTIPOINT = 'multipoint';
-    const LINESTRING = 'linestring';
-    const MULTILINESTRING = 'multilinestring';
-    const POLYGON = 'polygon';
-    const GEOMETRYCOLLECTION = 'geometrycollection';
-
-    /**
-     * @var string
-     */
     protected $name;
 
     /**
@@ -84,7 +69,7 @@ class Column
     /**
      * @var string
      */
-    protected $type;
+    protected $dataFormat;
 
     /**
      * @var bool
@@ -119,65 +104,32 @@ class Column
     /**
      * Field constructor.
      *
-     * @param $name
-     * @param $type
+     * @param $columnName
+     * @param $dataFormat
      * @param $length
      * @param bool $nullable
      * @param string $default
      * @param string $comment
      */
-    public function __construct($name, $type, $length = null, $nullable = false, $default = '', $comment = '')
+    public function __construct($columnName, $dataFormat, $length = null, $nullable = false, $default = '', $comment = '')
     {
-        $this->name = $name;
+        if (!array_key_exists($dataFormat, $this->fields)) {
+            throw new \LogicException(sprintf('unknown data format %s', $dataFormat));
+        }
 
-        $this->type = $this->getFiledType($type);
+        list($dataFormat, $defaultLength, $defaultValue) = $this->fields[$dataFormat];
 
-        $this->length = $length;
+        $this->name = $columnName;
+
+        $this->dataFormat = $dataFormat;
+
+        $this->length = empty($length) ? $defaultLength : $length;
 
         $this->nullable = $nullable;
 
-        $this->default = $this->getFieldTypeDefault($type, $default);
+        $this->default = empty($default) ? $defaultValue : $default;
 
         $this->comment = $comment;
-    }
-
-    /**
-     * @param $type
-     * @param $default
-     * @return int|string
-     */
-    protected function getFieldTypeDefault($type, $default)
-    {
-        if (in_array(
-            $type,
-            [
-                'int',
-                'smallint',
-                'tinyint',
-                'mediumint',
-                'integer',
-                'bigint',
-                'float',
-                'double',
-            ]
-        )) {
-            return empty($default) ? 0 : (int)$default;
-        }
-
-        return empty($default) ? '' : (string)$default;
-    }
-
-    /**
-     * @param $type
-     * @return string
-     */
-    protected function getFiledType($type)
-    {
-        if (in_array($type, ['array', 'json'])) {
-            $type = 'varchar';
-        }
-
-        return $type;
     }
 
     /**
@@ -191,9 +143,9 @@ class Column
     /**
      * @return string
      */
-    public function getType()
+    public function getDataFormat()
     {
-        return $this->type;
+        return $this->dataFormat;
     }
 
     /**
@@ -208,7 +160,7 @@ class Column
      * @param boolean $unsigned
      * @return $this
      */
-    public function setUnsigned($unsigned)
+    public function withUnsigned($unsigned)
     {
         $this->unsigned = $unsigned;
 
@@ -227,7 +179,7 @@ class Column
      * @param boolean $nullable
      * @return $this
      */
-    public function setNullable($nullable)
+    public function withNullable($nullable)
     {
         $this->nullable = $nullable;
 
@@ -246,7 +198,7 @@ class Column
      * @param string $default
      * @return $this
      */
-    public function setDefault($default)
+    public function withDefault($default)
     {
         $this->default = $default;
 
@@ -265,7 +217,7 @@ class Column
      * @param string $comment
      * @return $this
      */
-    public function setComment($comment)
+    public function withComment($comment)
     {
         $this->comment = $comment;
 
@@ -288,7 +240,7 @@ class Column
     {
         $this->key = $key;
 
-        $key->setField($this);
+        $key->withColumn($this);
 
         return $this;
     }
@@ -317,11 +269,7 @@ class Column
      */
     public function isPrimary()
     {
-        if (null === $this->key) {
-            return false;
-        }
-
-        return $this->key->isPrimary();
+        return null === $this->key ? false : $this->key->isPrimary();
     }
 
     /**
@@ -329,11 +277,7 @@ class Column
      */
     public function isIndex()
     {
-        if (null === $this->key) {
-            return false;
-        }
-
-        return $this->key->isIndex();
+        return null === $this->key ? false : $this->key->isIndex();
     }
 
     /**
@@ -341,11 +285,7 @@ class Column
      */
     public function isUnique()
     {
-        if (null === $this->key) {
-            return false;
-        }
-
-        return $this->key->isUnique();
+        return null === $this->key ? false : $this->key->isUnique();
     }
 
     /**
@@ -368,27 +308,42 @@ class Column
     }
 
     /**
-     * @param Column $field
+     * @param Column $column
      * @return bool
      */
-    public function equal(Column $field)
+    public function equal(Column $column)
     {
         return
             (
-                $field->getName()
-                .$field->getType()
-                .$field->getLength()
-                .$field->getComment()
-                .$field->getDefault()
-                .(null !== $field->getKey() ? $field->getKey()->getKey() : '')
+                $column->getName()
+                .$column->getDataFormat()
+                .$column->getLength()
+                .$column->getComment()
+                .$column->getDefault()
+                .(null !== $column->getKey() ? $column->getKey()->getKey() : '')
             ) ===
             (
                 $this->getName()
-                .$this->getType()
+                .$this->getDataFormat()
                 .$this->getLength()
                 .$this->getComment()
                 .$this->getDefault()
                 .(null !== $this->getKey() ? $this->getKey()->getKey() : '')
             );
+    }
+
+    public function __toString()
+    {
+        // name type(10) unsigned not null default '' comment ''
+        return sprintf(
+            '`%s` %s%s %s %s default %s comment %s',
+            $this->getName(),
+            $this->getDataFormat(),
+            (empty($this->getLength()) ? '' : '(' . $this->getLength() . ')'),
+            ($this->isUnique() ? 'unsigned' : ''),
+            ($this->isNullable() ? '' : 'not null'),
+            ('\'' . $this->getDefault() . '\''),
+            ('\'' . $this->getComment() . '\'')
+        );
     }
 }

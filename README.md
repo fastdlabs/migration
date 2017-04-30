@@ -2,6 +2,10 @@
 
 轻量，简单又好用的数据库迁移工具。支持创建、修改、数据集填充等基础功能。
 
+### 要求
+
+* PHP >= 5.6
+
 ### 使用
 
 ![usage](docs/2017-04-29%2016.26.07.gif)
@@ -11,7 +15,7 @@
 从数据库已有表中迁移到 PHP 文件
  
 ```
-php migrate migrate dump [-p|--path]
+php migrate dump [-p|--path]
 ```
 
 ##### Run
@@ -19,7 +23,13 @@ php migrate migrate dump [-p|--path]
 将PHP文件迁移到 MySQL 数据表
 
 ```
-php migrate migrate run [-p|--path]
+php migrate run [-p|--path]
+```
+
+##### Cache Clean
+
+```
+php migrate cache-clear
 ```
 
 ### Support

@@ -16,7 +16,7 @@ use Symfony\Component\Yaml\Yaml;
  * Class Migration
  * @package FastD\Migration
  */
-class Schema
+class TableBuilder
 {
     /**
      * @var string
@@ -29,14 +29,14 @@ class Schema
     protected $pdo;
 
     /**
-     * @var Table[]
+     * @var string
      */
-    protected static $tables = [];
+    protected $sql;
 
     /**
-     * @var array
+     * @var Table
      */
-    protected $config = [];
+    protected $table;
 
     /**
      * Migration constructor.
@@ -44,34 +44,7 @@ class Schema
      */
     public function __construct(PDO $pdo = null)
     {
-        if (null === $pdo) {
-            $file = getcwd().'/migrate.yml';
-            if ( ! file_exists($file)) {
-                throw new \RuntimeException('cannot such config file '.$file);
-            }
-            $config = Yaml::parse(file_get_contents($file));
-            $this->config = $config;
-            unset($file);
-            $pdo = new PDO(
-                sprintf('mysql:host=%s;dbname=%s', $config['host'], $config['dbname']),
-                $config['user'],
-                $config['pass']
-            );
-        }
-
-        if ( ! file_exists($this->cachePath)) {
-            mkdir($this->cachePath, 0755, true);
-        }
-
         $this->pdo = $pdo;
-    }
-
-    /**
-     * @return array
-     */
-    public function getConfig()
-    {
-        return $this->config;
     }
 
     /**
@@ -80,7 +53,7 @@ class Schema
      */
     final protected function getCache(Table $table)
     {
-        if ( ! $this->hasCache($table)) {
+        if (!$this->hasCache($table)) {
             return false;
         }
         $cache = file_get_contents($this->cachePath.'/'.$table->getTableName());
@@ -127,13 +100,13 @@ class Schema
     public function extract($table = null)
     {
         $sql = 'SHOW TABLES';
-        if ( ! empty($table)) {
+        if (! empty($table)) {
             $sql .= ' LIKE "'.$table.'"';
         }
+
         $tables = $this->pdo
             ->query($sql)
             ->fetchAll();
-
         $result = [];
         foreach ($tables as $key => $table) {
             $table = array_values($table)[0];
@@ -205,7 +178,7 @@ WHERE
             $schema['comment']
         );
 
-        $column->setUnsigned('unsigned' === trim($match['unsigned']) ? true : false);
+        $column->withUnsigned('unsigned' === trim($match['unsigned']) ? true : false);
 
         switch ($schema['extra']) {
             case 'auto_increment':
@@ -229,11 +202,35 @@ WHERE
     }
 
     /**
+     * @param $value
+     * @return bool
+     */
+    protected function isFunction($value)
+    {
+        if (empty($value)) {
+            return false;
+        }
+
+        $str = ord($value[0]);
+
+        return ($str > 64 && $str < 91) ? true : false;
+    }
+
+    /**
+     * @param $sql
+     * @return mixed
+     */
+    protected function beautify($sql)
+    {
+        return preg_replace('/ +/', ' ', $sql);
+    }
+
+    /**
      * @param Table $table
      * @param bool $force
-     * @return string
+     * @return $this
      */
-    public function update(Table $table, $force = true)
+    public function update(Table $table, $force = false)
     {
         return !$this->hasCache($table) ? $this->create($table, $force) : $this->alter($table);
     }
@@ -241,24 +238,39 @@ WHERE
     /**
      * @param Table $table
      * @param bool $force
-     * @return string
+     * @return $this
      */
-    protected function create(Table $table, $force = false)
+    public function create(Table $table, $force = false)
     {
+        $this->table = $table;
+
         $columns = [];
         $keys = [];
 
         foreach ($table->getColumns() as $name => $column) {
+            // wrap default value sql
+            $default = '';
+            if (!$column->isIncrement() && !$column->isUnique() && !$column->isPrimary()) {
+                $defaultValue = $column->getDefault();
+                if (!$this->isFunction($defaultValue)) {
+                    if (is_int($defaultValue)) {
+                        $defaultValue = sprintf('%s', $defaultValue);
+                    } else {
+                        $defaultValue = sprintf('"%s"', $defaultValue);
+                    }
+                }
+                $default .= 'DEFAULT ' . $defaultValue;
+            }
+
             $columns[] =
                 implode(
                     ' ',
                     [
                         '`'.$column->getName().'`',
-                        $column->getType().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
+                        $column->getDataFormat().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
                         ($column->isUnsigned()) ? 'UNSIGNED' : '',
                         ($column->isNullable() ? '' : ('NOT NULL')),
-                        (! $column->isIncrement() && ! $column->isUnique() && ! $column->isPrimary(
-                        ) ? 'DEFAULT "'.$column->getDefault().'"' : ''),
+                        $default,
                         ($column->isIncrement()) ? 'AUTO_INCREMENT' : '',
                         'COMMENT "'.$column->getComment().'"',
                     ]
@@ -281,7 +293,7 @@ WHERE
 
         $schema = $force ? ('DROP TABLE IF EXISTS `'.$table->getTableName().'`;'.PHP_EOL.PHP_EOL) : '';
 
-        $schema .= 'CREATE TABLE `'.$table->getTableName().'` IF NOT EXISTS `'.$table->getTableName().'` (';
+        $schema .= 'CREATE TABLE IF NOT EXISTS `'.$table->getTableName().'` (';
         $schema .= PHP_EOL.implode(','.PHP_EOL, $columns).(empty($keys) ? PHP_EOL : (','.PHP_EOL.implode(
                     ','.PHP_EOL,
                     $keys
@@ -289,23 +301,22 @@ WHERE
         $schema .= ') ENGINE '.$table->getEngine().' CHARSET '.$table->getCharset().' COMMENT "'.$table->getComment(
             ).'";';
 
-        if (false === ($result = $this->pdo->exec($schema))) {
-            $error = $this->pdo->errorInfo();
-            throw new \RuntimeException($error[0] . ' ' . $error[2]);
-        }
+        $this->sql = $schema;
 
-        $this->saveCache($table);
-
-        return $result;
+        return $this;
     }
 
     /**
      * @param Table $table
-     * @return string
+     * @return $this
      */
-    protected function alter(Table $table)
+    public function alter(Table $table)
     {
-        $cache = $this->getCache($table);
+        $this->table = $table;
+
+        if (false === ($cache = $this->getCache($table))) {
+            $cache = [];
+        }
 
         $add = [];
         $change = [];
@@ -313,17 +324,29 @@ WHERE
         $keys = [];
 
         foreach ($table->getColumns() as $name => $column) {
+            // wrap default value sql
+            $default = '';
+            if (!$column->isIncrement() && !$column->isUnique() && !$column->isPrimary()) {
+                $defaultValue = $column->getDefault();
+                if (!$this->isFunction($defaultValue)) {
+                    if (is_int($defaultValue)) {
+                        $defaultValue = sprintf('%s', $defaultValue);
+                    } else {
+                        $defaultValue = sprintf('"%s"', $defaultValue);
+                    }
+                }
+                $default .= 'DEFAULT ' . $defaultValue;
+            }
             if (array_key_exists($column->getName(), $cache)) {
                 if ( ! $column->equal($cache[$name])) {
                     $change[] = implode(
                         ' ',
                         [
                             'ALTER TABLE `'.$table->getTableName().'` CHANGE `'.$name.'` `'.$column->getName().'`',
-                            $column->getType().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
+                            $column->getDataFormat().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
                             ($column->isUnsigned()) ? 'UNSIGNED' : '',
                             ($column->isNullable() ? '' : ('NOT NULL')),
-                            (( ! empty($column->getDefault()) && ! $column->isIncrement() && ! $column->isUnique(
-                                ) && ! $column->isPrimary()) ? 'DEFAULT "'.$column->getDefault().'"' : ''),
+                            $default,
                             ($column->isPrimary()) ? 'AUTO_INCREMENT' : '',
                             'COMMENT "'.$column->getComment().'";',
                         ]
@@ -335,11 +358,10 @@ WHERE
                         ' ',
                         [
                             'ALTER TABLE `'.$table->getTableName().'` ADD `'.$column->getName().'`',
-                            $column->getType().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
+                            $column->getDataFormat().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
                             ($column->isUnsigned()) ? 'UNSIGNED' : '',
                             ($column->isNullable() ? '' : ('NOT NULL')),
-                            (( ! empty($column->getDefault()) && ! $column->isIncrement() && ! $column->isUnique(
-                                ) && ! $column->isPrimary()) ? 'DEFAULT "'.$column->getDefault().'"' : ''),
+                            $default,
                             ($column->isPrimary()) ? 'AUTO_INCREMENT' : '',
                             'COMMENT "'.$column->getComment().'";',
                         ]
@@ -382,32 +404,35 @@ WHERE
             )
         );
 
-        $result = 0;
+        $this->sql = $schema;
 
-        if (!empty($schema)) {
-            if (false === ($result = $this->pdo->exec($schema))) {
-                $error = $this->pdo->errorInfo();
-                throw new \RuntimeException($error[0] . ' ' . $error[2]);
-            }
-
-            $this->saveCache($table);
-        }
-
-        return $result;
+        return $this;
     }
 
     /**
-     * @param $name
-     * @param $callback
-     * @return mixed
+     * @return string
      */
-    public static function table($name, $callback)
+    public function getTableInfo()
     {
-        $table = new Table($name);
-        static::$tables[$name] = $table;
+        return $this->beautify($this->sql);
+    }
 
-        call_user_func($callback, $table);
+    /**
+     * @return int
+     */
+    public function execute()
+    {
+        if (empty($this->sql)) {
+            return false;
+        }
 
-        return $table;
+        if (false === $this->pdo->exec($this->getTableInfo())) {
+            list($code, $errorCode, $message) = $this->pdo->errorInfo();
+            throw new \PDOException(sprintf('ERROR %s (%s): %s', $code, $errorCode, $message));
+        }
+
+        $this->saveCache($this->table);
+
+        return true;
     }
 }

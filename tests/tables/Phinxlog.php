@@ -1,11 +1,11 @@
 <?php
 
-use \FastD\Migration\Migration;
+use \FastD\Migration\MigrationAbstract;
 use \FastD\Migration\Column;
 use \FastD\Migration\Table;
 
 
-class Phinxlog extends Migration
+class Phinxlog extends MigrationAbstract
 {
     /**
      * {@inheritdoc}
@@ -15,11 +15,11 @@ class Phinxlog extends Migration
         $table = new Table('phinxlog');
 
         $table
-            ->addColumn(new Column('version', 'bigint'))
-            ->addColumn(new Column('migration_name', 'varchar'))
-            ->addColumn(new Column('start_time', 'timestamp'))
-            ->addColumn(new Column('end_time', 'timestamp'))
-            ->addColumn(new Column('breakpoint', 'tinyint'))
+            ->addColumn(new Column('version', 'bigint', 20, false, '0', ''))
+            ->addColumn(new Column('migration_name', 'varchar', 100, true, '', ''))
+            ->addColumn(new Column('start_time', 'timestamp', null, true, 'CURRENT_TIMESTAMP', ''))
+            ->addColumn(new Column('end_time', 'timestamp', null, true, 'CURRENT_TIMESTAMP', ''))
+            ->addColumn(new Column('breakpoint', 'tinyint', 1, false, '0', ''))
         ;
 
         return $table;

@@ -67,13 +67,13 @@ class Table
 
     /**
      * @param $column
-     * @param $type
+     * @param $dataFormat
      * @return $this
      */
-    public function addColumn($column, $type = 'varchar')
+    public function addColumn($column, $dataFormat = 'varchar')
     {
         if (!($column instanceof Column)) {
-            $column = new Column($column, $type);
+            $column = new Column($column, $dataFormat);
         }
 
         $this->columns[$column->getName()] = $column;
