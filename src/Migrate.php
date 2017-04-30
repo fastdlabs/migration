@@ -241,7 +241,7 @@ class Migrate extends Command
                 file_put_contents($file, $content);
                 $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>', $table->getTableName()));
             } else {
-                $output->writeln(sprintf('<comment>Warning: Dump table "%s" is not change</comment>', $table->getTableName()));
+                $output->writeln(sprintf('  <comment>!!</comment> Dump table "<comment>%s</comment>" is <comment>not change</comment>', $table->getTableName()));
             }
             if ($input->hasParameterOption(['--info', '-i'])) {
                 $this->renderTableInfo($output, $table)->render();
