@@ -15,17 +15,23 @@ class TableBuilderTest extends PHPUnit_Framework_TestCase
 {
     public function testCreate()
     {
-        $table = (new Table('test'))->addColumn(new Column('test', 'varchar'));
+        $table = (new Table('test'))->addColumn('test', 'varchar');
         $builder = new TableBuilder();
-        echo PHP_EOL;
-        echo $builder->create($table)->getTableInfo();
+        $sql = <<<SQL
+CREATE TABLE IF NOT EXISTS `test` (
+`test` VARCHAR(200) NOT NULL DEFAULT "" COMMENT ""
+) ENGINE InnoDB CHARSET utf8 COMMENT "";
+SQL;
+        $this->assertEquals($sql, $builder->create($table)->getTableInfo());
     }
 
     public function testAlter()
     {
-        $table = (new Table('test'))->addColumn(new Column('test', 'varchar'));
+        $table = (new Table('test'))->addColumn('test', 'varchar');
         $builder = new TableBuilder();
-        echo PHP_EOL;
-        echo $builder->alter($table)->getTableInfo();
+        $sql = <<<SQL
+ALTER TABLE `test` ADD `test` VARCHAR(200) NOT NULL DEFAULT "" COMMENT "";
+SQL;
+        $this->assertEquals($sql, $builder->alter($table)->getTableInfo());
     }
 }

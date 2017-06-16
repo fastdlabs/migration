@@ -21,7 +21,7 @@ abstract class MigrationAbstract
     abstract public function setUp();
 
     /**
-     * @return mixed
+     * @return void
      */
     abstract public function dataSet();
 }

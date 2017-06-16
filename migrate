@@ -8,8 +8,7 @@
  * @see      http://www.fast-d.cn/
  */
 
-use FastD\Migration\Migrate;
-use Symfony\Component\Console\Application;
+use FastD\Migration\Migrator;
 
 set_time_limit(0);
 date_default_timezone_set('PRC');
@@ -36,6 +35,6 @@ if (!defined('COMPOSER_INSTALL')) {
 
 include COMPOSER_INSTALL;
 
-$migrator = new \FastD\Migration\Migrator();
+$migrator = new Migrator();
 
 $migrator->run();

@@ -26,7 +26,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 class Migrate extends Command
 {
-    /**
+    /**`
      * @var string
      */
     protected $configFile;

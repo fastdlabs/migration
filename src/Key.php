@@ -11,10 +11,9 @@ namespace FastD\Migration;
 
 /**
  * Class Key
- *
- * @package FastD\Database\Schema
+ * @package FastD\Migration
  */
-class Index
+class Key
 {
     /**
      * Primary key
@@ -38,11 +37,6 @@ class Index
     const INDEX = 'INDEX';
 
     /**
-     * @var string
-     */
-    protected $field;
-
-    /**
      * @var int
      */
     protected $key;
@@ -51,28 +45,9 @@ class Index
      * Key constructor.
      * @param string $key
      */
-    public function __construct($key = Index::INDEX)
+    public function __construct($key = Key::INDEX)
     {
         $this->key = $key;
-    }
-
-    /**
-     * @param Column $field
-     * @return $this
-     */
-    public function withColumn(Column $field)
-    {
-        $this->field = $field;
-
-        return $this;
-    }
-
-    /**
-     * @return null|string
-     */
-    public function getColumn()
-    {
-        return $this->field;
     }
 
     /**
@@ -88,7 +63,7 @@ class Index
      */
     public function isPrimary()
     {
-        return $this->key === Index::PRIMARY;
+        return $this->key === static::PRIMARY;
     }
 
     /**
@@ -96,7 +71,7 @@ class Index
      */
     public function isUnique()
     {
-        return $this->key === Index::UNIQUE;
+        return $this->key === static::UNIQUE;
     }
 
     /**
@@ -104,6 +79,6 @@ class Index
      */
     public function isIndex()
     {
-        return $this->key === Index::INDEX;
+        return $this->key === static::INDEX;
     }
 }

@@ -10,7 +10,6 @@
 namespace FastD\Migration;
 
 use PDO;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Class Migration
@@ -21,7 +20,7 @@ class TableBuilder
     /**
      * @var string
      */
-    protected $cachePath = __DIR__.'/.cache/tables';
+    protected $cachePath = __DIR__ . '/.cache/tables';
 
     /**
      * @var PDO
@@ -56,7 +55,7 @@ class TableBuilder
         if (!$this->hasCache($table)) {
             return false;
         }
-        $cache = file_get_contents($this->cachePath.'/'.$table->getTableName());
+        $cache = file_get_contents($this->cachePath . '/' . $table->getTableName());
 
         return unserialize($cache);
     }
@@ -67,7 +66,7 @@ class TableBuilder
      */
     final protected function saveCache(Table $table)
     {
-        $cacheFile = $this->cachePath.'/'.$table->getTableName();
+        $cacheFile = $this->cachePath . '/' . $table->getTableName();
 
         return file_put_contents($cacheFile, serialize($table->getColumns()));
     }
@@ -78,7 +77,7 @@ class TableBuilder
      */
     final protected function hasCache(Table $table)
     {
-        return file_exists($this->cachePath.'/'.$table->getTableName());
+        return file_exists($this->cachePath . '/' . $table->getTableName());
     }
 
     /**
@@ -86,7 +85,7 @@ class TableBuilder
      */
     final protected function clearCache(Table $table)
     {
-        $cacheFile = $this->cachePath.'/'.$table->getTableName();
+        $cacheFile = $this->cachePath . '/' . $table->getTableName();
 
         if (file_exists($cacheFile)) {
             unlink($cacheFile);
@@ -100,8 +99,8 @@ class TableBuilder
     public function extract($table = null)
     {
         $sql = 'SHOW TABLES';
-        if (! empty($table)) {
-            $sql .= ' LIKE "'.$table.'"';
+        if (!empty($table)) {
+            $sql .= ' LIKE "' . $table . '"';
         }
 
         $tables = $this->pdo
@@ -124,7 +123,7 @@ class TableBuilder
     {
         $table = new Table($name);
 
-        if ( ! empty(($columns = $this->showTableSchema($table->getTableName())))) {
+        if (!empty(($columns = $this->showTableSchema($table->getTableName())))) {
             foreach ($columns as $column) {
                 $column = $this->parseColumn($column);
                 $table->addColumn($column);
@@ -154,7 +153,7 @@ class TableBuilder
   EXTRA AS `extra`
 FROM information_schema.COLUMNS
 WHERE
-  TABLE_NAME = \''.$table.'\';'
+  TABLE_NAME = \'' . $table . '\';'
             )
             ->fetchAll();
     }
@@ -188,13 +187,13 @@ WHERE
 
         switch ($schema['key']) {
             case 'PRI':
-                $column->setKey(new Index(Index::PRIMARY));
+                $column->withKey(new Key(Key::PRIMARY));
                 break;
             case 'MUL':
-                $column->setKey(new Index(Index::INDEX));
+                $column->withKey(new Key(Key::INDEX));
                 break;
             case 'UNI':
-                $column->setKey(new Index(Index::UNIQUE));
+                $column->withKey(new Key(Key::UNIQUE));
                 break;
         }
 
@@ -266,40 +265,39 @@ WHERE
                 implode(
                     ' ',
                     [
-                        '`'.$column->getName().'`',
-                        $column->getDataFormat().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
+                        '`' . $column->getName() . '`',
+                        $column->getType() . (!empty($column->getLength()) ? '(' . $column->getLength() . ')' : ''),
                         ($column->isUnsigned()) ? 'UNSIGNED' : '',
                         ($column->isNullable() ? '' : ('NOT NULL')),
                         $default,
                         ($column->isIncrement()) ? 'AUTO_INCREMENT' : '',
-                        'COMMENT "'.$column->getComment().'"',
+                        'COMMENT "' . $column->getComment() . '"',
                     ]
                 );
 
             if (null !== $column->getKey()) {
                 if ($column->isPrimary()) {
-                    $keys[] = 'PRIMARY KEY (`'.$column->getName().'`)';
+                    $keys[] = 'PRIMARY KEY (`' . $column->getName() . '`)';
                 } else {
                     if ($column->isUnique()) {
-                        $keys[] = 'UNIQUE KEY `unique_'.$column->getName().'` (`'.$column->getName().'`)';
+                        $keys[] = 'UNIQUE KEY `unique_' . $column->getName() . '` (`' . $column->getName() . '`)';
                     } else {
                         if ($column->isIndex()) {
-                            $keys[] = 'KEY `index_'.$column->getName().'` (`'.$column->getName().'`)';
+                            $keys[] = 'KEY `index_' . $column->getName() . '` (`' . $column->getName() . '`)';
                         }
                     }
                 }
             }
         }
 
-        $schema = $force ? ('DROP TABLE IF EXISTS `'.$table->getTableName().'`;'.PHP_EOL.PHP_EOL) : '';
+        $schema = $force ? ('DROP TABLE IF EXISTS `' . $table->getTableName() . '`;' . PHP_EOL . PHP_EOL) : '';
 
-        $schema .= 'CREATE TABLE IF NOT EXISTS `'.$table->getTableName().'` (';
-        $schema .= PHP_EOL.implode(','.PHP_EOL, $columns).(empty($keys) ? PHP_EOL : (','.PHP_EOL.implode(
-                    ','.PHP_EOL,
+        $schema .= 'CREATE TABLE IF NOT EXISTS `' . $table->getTableName() . '` (';
+        $schema .= PHP_EOL . implode(',' . PHP_EOL, $columns) . (empty($keys) ? PHP_EOL : (',' . PHP_EOL . implode(
+                    ',' . PHP_EOL,
                     $keys
-                ).PHP_EOL));
-        $schema .= ') ENGINE '.$table->getEngine().' CHARSET '.$table->getCharset().' COMMENT "'.$table->getComment(
-            ).'";';
+                ) . PHP_EOL));
+        $schema .= ') ENGINE ' . $table->getEngine() . ' CHARSET ' . $table->getCharset() . ' COMMENT "' . $table->getComment() . '";';
 
         $this->sql = $schema;
 
@@ -338,17 +336,17 @@ WHERE
                 $default .= 'DEFAULT ' . $defaultValue;
             }
             if (array_key_exists($column->getName(), $cache)) {
-                if ( ! $column->equal($cache[$name])) {
+                if (!$column->equal($cache[$name])) {
                     $change[] = implode(
                         ' ',
                         [
-                            'ALTER TABLE `'.$table->getTableName().'` CHANGE `'.$name.'` `'.$column->getName().'`',
-                            $column->getDataFormat().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
+                            'ALTER TABLE `' . $table->getTableName() . '` CHANGE `' . $name . '` `' . $column->getName() . '`',
+                            $column->getType() . (!empty($column->getLength()) ? '(' . $column->getLength() . ')' : ''),
                             ($column->isUnsigned()) ? 'UNSIGNED' : '',
                             ($column->isNullable() ? '' : ('NOT NULL')),
                             $default,
                             ($column->isPrimary()) ? 'AUTO_INCREMENT' : '',
-                            'COMMENT "'.$column->getComment().'";',
+                            'COMMENT "' . $column->getComment() . '";',
                         ]
                     );
                 }
@@ -357,13 +355,13 @@ WHERE
                     implode(
                         ' ',
                         [
-                            'ALTER TABLE `'.$table->getTableName().'` ADD `'.$column->getName().'`',
-                            $column->getDataFormat().(! empty($column->getLength()) ? '('.$column->getLength().')' : ''),
+                            'ALTER TABLE `' . $table->getTableName() . '` ADD `' . $column->getName() . '`',
+                            $column->getType() . (!empty($column->getLength()) ? '(' . $column->getLength() . ')' : ''),
                             ($column->isUnsigned()) ? 'UNSIGNED' : '',
                             ($column->isNullable() ? '' : ('NOT NULL')),
                             $default,
                             ($column->isPrimary()) ? 'AUTO_INCREMENT' : '',
-                            'COMMENT "'.$column->getComment().'";',
+                            'COMMENT "' . $column->getComment() . '";',
                         ]
                     );
             }
@@ -371,9 +369,8 @@ WHERE
                 $keys[] = implode(
                     ' ',
                     [
-                        'ALTER TABLE `'.$table->getTableName().'` ADD '.($column->getKey()->isPrimary(
-                        ) ? 'PRIMARY KEY' : $column->getKey()->getKey()),
-                        '`index_'.$column->getName().'` ('.$column->getName().');',
+                        'ALTER TABLE `' . $table->getTableName() . '` ADD ' . ($column->getKey()->isPrimary() ? 'PRIMARY KEY' : $column->getKey()->getKey()),
+                        '`index_' . $column->getName() . '` (' . $column->getName() . ');',
                     ]
                 );
             }
@@ -385,8 +382,8 @@ WHERE
                 $drop[] = implode(
                     ' ',
                     [
-                        'ALTER TABLE `'.$table->getTableName().'`',
-                        'DROP COLUMN `'.$column->getName().'`;',
+                        'ALTER TABLE `' . $table->getTableName() . '`',
+                        'DROP COLUMN `' . $column->getName() . '`;',
                     ]
                 );
             }

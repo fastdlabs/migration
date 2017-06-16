@@ -11,10 +11,10 @@ namespace FastD\Migration;
 
 /**
  * Class Table
- * @package FastD\Database\Schema
+ * @package FastD\Migration
  */
 class Table
-{
+{  
     /**
      * @var string
      */
@@ -49,7 +49,7 @@ class Table
     {
         $this->table = $table;
 
-        $this->setComment($comment);
+        $this->withComment($comment);
     }
 
     /**
@@ -58,7 +58,7 @@ class Table
      * @param Column[] $columns
      * @return $this
      */
-    public function setColumns(array $columns)
+    public function withColumns(array $columns)
     {
         $this->columns = $columns;
 
@@ -67,14 +67,16 @@ class Table
 
     /**
      * @param $column
-     * @param $dataFormat
-     * @return $this
+     * @param string $type
+     * @param null $length
+     * @param bool $nullable
+     * @param string $default
+     * @param string $comment
+     * @return Table
      */
-    public function addColumn($column, $dataFormat = 'varchar')
+    public function addColumn($column, $type = 'varchar', $length = null, $nullable = false, $default = '', $comment = '')
     {
-        if (!($column instanceof Column)) {
-            $column = new Column($column, $dataFormat);
-        }
+        $column = new Column($column, $type, $length, $nullable, $default, $comment);
 
         $this->columns[$column->getName()] = $column;
 
@@ -133,7 +135,7 @@ class Table
      * @param string $charset
      * @return $this
      */
-    public function setCharset($charset)
+    public function withCharset($charset)
     {
         $this->charset = $charset;
 
@@ -144,7 +146,7 @@ class Table
      * @param $comment
      * @return $this
      */
-    public function setComment($comment)
+    public function withComment($comment)
     {
         $this->comment = $comment;
 

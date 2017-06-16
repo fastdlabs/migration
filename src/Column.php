@@ -9,16 +9,17 @@
 
 namespace FastD\Migration;
 
+
 /**
- * Class Field
- * @package FastD\Database\Schema
+ * Class Column
+ * @package FastD\Migration
  */
 class Column
 {
     /**
      * @var array
      */
-    protected $fields = [
+    protected $columns = [
         'bit' => ['bit', 10, 0],
         'bool' => ['boo', 1, 0],
         'tinyint' => ['tinyint', 4, 0],
@@ -69,7 +70,7 @@ class Column
     /**
      * @var string
      */
-    protected $dataFormat;
+    protected $type;
 
     /**
      * @var bool
@@ -92,7 +93,7 @@ class Column
     protected $comment;
 
     /**
-     * @var Index
+     * @var Key
      */
     protected $key;
 
@@ -105,23 +106,23 @@ class Column
      * Field constructor.
      *
      * @param $columnName
-     * @param $dataFormat
+     * @param $type
      * @param $length
      * @param bool $nullable
      * @param string $default
      * @param string $comment
      */
-    public function __construct($columnName, $dataFormat, $length = null, $nullable = false, $default = '', $comment = '')
+    public function __construct($columnName, $type, $length = null, $nullable = false, $default = '', $comment = '')
     {
-        if (!array_key_exists($dataFormat, $this->fields)) {
-            throw new \LogicException(sprintf('unknown data format %s', $dataFormat));
+        if (!array_key_exists($type, $this->columns)) {
+            throw new \LogicException(sprintf('unknown data type %s', $type));
         }
 
-        list($dataFormat, $defaultLength, $defaultValue) = $this->fields[$dataFormat];
+        list(, $defaultLength, $defaultValue) = $this->columns[$type];
 
         $this->name = $columnName;
 
-        $this->dataFormat = $dataFormat;
+        $this->type = strtoupper($type);
 
         $this->length = empty($length) ? $defaultLength : $length;
 
@@ -143,9 +144,9 @@ class Column
     /**
      * @return string
      */
-    public function getDataFormat()
+    public function getType()
     {
-        return $this->dataFormat;
+        return $this->type;
     }
 
     /**
@@ -225,7 +226,7 @@ class Column
     }
 
     /**
-     * @return Index
+     * @return Key
      */
     public function getKey()
     {
@@ -233,14 +234,12 @@ class Column
     }
 
     /**
-     * @param Index $key
+     * @param Key $key
      * @return $this
      */
-    public function setKey(Index $key)
+    public function withKey(Key $key)
     {
         $this->key = $key;
-
-        $key->withColumn($this);
 
         return $this;
     }
@@ -257,7 +256,7 @@ class Column
      * @param string $name
      * @return $this
      */
-    public function setName($name)
+    public function withName($name)
     {
         $this->name = $name;
 
@@ -316,7 +315,7 @@ class Column
         return
             (
                 $column->getName()
-                .$column->getDataFormat()
+                .$column->gettype()
                 .$column->getLength()
                 .$column->getComment()
                 .$column->getDefault()
@@ -324,7 +323,7 @@ class Column
             ) ===
             (
                 $this->getName()
-                .$this->getDataFormat()
+                .$this->gettype()
                 .$this->getLength()
                 .$this->getComment()
                 .$this->getDefault()
@@ -338,7 +337,7 @@ class Column
         return sprintf(
             '`%s` %s%s %s %s default %s comment %s',
             $this->getName(),
-            $this->getDataFormat(),
+            $this->gettype(),
             (empty($this->getLength()) ? '' : '(' . $this->getLength() . ')'),
             ($this->isUnique() ? 'unsigned' : ''),
             ($this->isNullable() ? '' : 'not null'),
