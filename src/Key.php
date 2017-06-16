@@ -47,7 +47,7 @@ class Key
      */
     public function __construct($key = Key::INDEX)
     {
-        $this->key = $key;
+        $this->key = strtoupper($key);
     }
 
     /**

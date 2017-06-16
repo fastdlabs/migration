@@ -234,12 +234,12 @@ class Column
     }
 
     /**
-     * @param Key $key
+     * @param string $key
      * @return $this
      */
-    public function withKey(Key $key)
+    public function withKey($key)
     {
-        $this->key = $key;
+        $this->key = new Key($key);
 
         return $this;
     }
@@ -291,11 +291,19 @@ class Column
      * @param int $inc
      * @return $this
      */
-    public function setIncrement($inc = 1)
+    public function withIncrement($inc = 1)
     {
         $this->increment = $inc;
 
         return $this;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getIncrement()
+    {
+        return $this->increment;
     }
 
     /**
