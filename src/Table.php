@@ -84,6 +84,17 @@ class Table
     }
 
     /**
+     * @param Column $column
+     * @return Table
+     */
+    public function appendColumn(Column $column)
+    {
+        $this->columns[$column->getName()] = $column;
+
+        return $this;
+    }
+
+    /**
      * Get all table schema columns.
      *
      * @return Column[]

@@ -260,9 +260,9 @@ class Migrate extends Command
         $code = ['$table'];
         foreach ($table->getColumns() as $column) {
             $code[] = str_repeat(' ', 12) . sprintf(
-                "->addColumn(new Column('%s', '%s', %s, %s, '%s', '%s'))",
+                "->addColumn('%s', '%s', %s, %s, '%s', '%s')",
                 $column->getName(),
-                $column->getDataFormat(),
+                $column->getType(),
                 null === $column->getLength() ? 'null' : $column->getLength(),
                 false === $column->isNullable() ? 'false' : 'true',
                 $column->getDefault(),
