@@ -33,13 +33,12 @@ class Migrate extends Command
 
     public function configure()
     {
-        $this->configFile = getcwd().'/migrate.yml';
-
         $this
             ->setName('migrate')
             ->setDescription('Migration database to php')
             ->addArgument('behavior', InputArgument::REQUIRED, 'Migration behavior <comment>[dump|run|cache-clear]</comment>')
             ->addArgument('table', InputArgument::OPTIONAL, 'Migration table name', null)
+            ->addOption('conf', 'c', InputOption::VALUE_OPTIONAL, 'Migration config file', getcwd().'/migrate.yml')
             ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './')
             ->addOption('info', 'i', InputOption::VALUE_NONE, 'Show table info')
         ;
@@ -105,6 +104,7 @@ class Migrate extends Command
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->configFile = $input->getParameterOption(['--conf', '-c']);
         if (! file_exists($this->configFile)) {
             $config = $this->askConfig($input, $output);
             $config = Yaml::dump($config);
