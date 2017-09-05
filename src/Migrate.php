@@ -36,10 +36,11 @@ class Migrate extends Command
         $this
             ->setName('migrate')
             ->setDescription('Migration database to php')
-            ->addArgument('behavior', InputArgument::REQUIRED, 'Migration behavior <comment>[dump|run|cache-clear]</comment>')
+            ->addArgument('behavior', InputArgument::OPTIONAL, 'Migration behavior <comment>[info|dump|run|cache-clear]</comment>', 'info')
             ->addArgument('table', InputArgument::OPTIONAL, 'Migration table name', null)
-            ->addOption('conf', 'c', InputOption::VALUE_OPTIONAL, 'Migration config file', getcwd().'/migrate.yml')
-            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './')
+            ->addOption('conf', 'c', InputOption::VALUE_OPTIONAL, 'Config file', './migrate.yml')
+            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', '/migrate')
+            ->addOption('data', 'd', InputOption::VALUE_OPTIONAL, 'Insert dataset in to table.', './dataset')
             ->addOption('info', 'i', InputOption::VALUE_NONE, 'Show table info')
         ;
     }
@@ -104,7 +105,7 @@ class Migrate extends Command
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->configFile = $input->getParameterOption(['--conf', '-c']);
+        $this->configFile = $input->getOption('conf');
         if (! file_exists($this->configFile)) {
             $config = $this->askConfig($input, $output);
             $config = Yaml::dump($config);
@@ -113,9 +114,13 @@ class Migrate extends Command
             $config = file_get_contents($this->configFile);
         }
 
+        $output->writeln(sprintf('FastD <info>Migration</info> Version: <comment>%s</comment>', Migrator::VERSION) . PHP_EOL);
         $output->writeln($config);
 
         switch ($input->getArgument('behavior')) {
+            case 'info':
+                $this->info($input, $output);
+                break;
             case 'cache-clear':
                 $this->cacheClear($input, $output);
                 break;
@@ -138,12 +143,13 @@ class Migrate extends Command
     protected function renderTableInfo(OutputInterface $output, Table $table)
     {
         $t = new SymfonyTable($output);
+        $output->writeln(sprintf('Table: <comment>%s</comment>', $table->getTableName()));
         $t->setHeaders(array('Field', 'Type', 'Nullable', 'Key', 'Default', 'Extra'));
         foreach ($table->getColumns() as $column) {
             $t->addRow(
                 [
                     $column->getName(),
-                    $column->getDataFormat().($column->getLength() <= 0 ? '' : '('.$column->getLength().')'),
+                    $column->getType().($column->getLength() <= 0 ? '' : '('.$column->getLength().')'),
                     $column->isNullable() ? 'YES' : 'NO',
                     null === $column->getKey() ? '' : $column->getKey()->getKey(),
                     $column->getDefault(),
@@ -172,6 +178,20 @@ class Migrate extends Command
         return ucfirst($name);
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     */
+    public function info(InputInterface $input, OutputInterface $output)
+    {
+        $builder = new TableBuilder($this->createConnection());
+
+        $tables = $builder->extract($tableName = $input->getArgument('table'));
+
+        foreach ($tables as $table) {
+            $this->renderTableInfo($output, $table)->render();
+        }
+    }
 
     /**
      * Clean table cache file
