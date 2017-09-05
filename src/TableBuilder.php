@@ -126,7 +126,7 @@ class TableBuilder
         if (!empty(($columns = $this->showTableSchema($table->getTableName())))) {
             foreach ($columns as $column) {
                 $column = $this->parseColumn($column);
-                $table->addColumn($column);
+                $table->appendColumn($column);
             }
         }
 
@@ -181,19 +181,19 @@ WHERE
 
         switch ($schema['extra']) {
             case 'auto_increment':
-                $column->setIncrement();
+                $column->withIncrement();
                 break;
         }
 
         switch ($schema['key']) {
             case 'PRI':
-                $column->withKey(new Key(Key::PRIMARY));
+                $column->withKey(Key::PRIMARY);
                 break;
             case 'MUL':
-                $column->withKey(new Key(Key::INDEX));
+                $column->withKey(Key::INDEX);
                 break;
             case 'UNI':
-                $column->withKey(new Key(Key::UNIQUE));
+                $column->withKey(Key::UNIQUE);
                 break;
         }
 

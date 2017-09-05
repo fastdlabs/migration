@@ -15,11 +15,11 @@ class Phinxlog extends MigrationAbstract
         $table = new Table('phinxlog');
 
         $table
-            ->addColumn(new Column('version', 'bigint', 20, false, '0', ''))
-            ->addColumn(new Column('migration_name', 'varchar', 100, true, '', ''))
-            ->addColumn(new Column('start_time', 'timestamp', null, true, 'CURRENT_TIMESTAMP', ''))
-            ->addColumn(new Column('end_time', 'timestamp', null, true, 'CURRENT_TIMESTAMP', ''))
-            ->addColumn(new Column('breakpoint', 'tinyint', 1, false, '0', ''))
+            ->addColumn('version', 'BIGINT', 20, false, '0', '')
+            ->addColumn('migration_name', 'VARCHAR', 100, true, '', '')
+            ->addColumn('start_time', 'TIMESTAMP', null, true, 'CURRENT_TIMESTAMP', '')
+            ->addColumn('end_time', 'TIMESTAMP', null, true, 'CURRENT_TIMESTAMP', '')
+            ->addColumn('breakpoint', 'TINYINT', 1, false, '0', '')
         ;
 
         return $table;
