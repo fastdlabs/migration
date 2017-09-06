@@ -21,7 +21,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class Migrator extends Application
 {
-    const VERSION = '0.1.0 beta';
+    const VERSION = 'v0.1.0-beta';
 
     public function __construct()
     {

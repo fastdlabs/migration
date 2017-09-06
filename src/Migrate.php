@@ -12,6 +12,7 @@ namespace FastD\Migration;
 
 use PDO;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Command\HelpCommand;
 use Symfony\Component\Console\Helper\Table as SymfonyTable;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -36,10 +37,10 @@ class Migrate extends Command
         $this
             ->setName('migrate')
             ->setDescription('Migration database to php')
-            ->addArgument('behavior', InputArgument::OPTIONAL, 'Migration behavior <comment>[info|dump|run|cache-clear]</comment>', 'info')
+            ->addArgument('behavior', InputArgument::OPTIONAL, 'Migration behavior <comment>[info|dump|run|cache-clear]</comment>', 'help')
             ->addArgument('table', InputArgument::OPTIONAL, 'Migration table name', null)
             ->addOption('conf', 'c', InputOption::VALUE_OPTIONAL, 'Config file', './migrate.yml')
-            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', '/migrate')
+            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './migration')
             ->addOption('data', 'd', InputOption::VALUE_OPTIONAL, 'Insert dataset in to table.', './dataset')
             ->addOption('info', 'i', InputOption::VALUE_NONE, 'Show table info')
         ;
@@ -98,6 +99,11 @@ class Migrate extends Command
         }
     }
 
+    public function version(OutputInterface $output)
+    {
+        $output->writeln(sprintf('FastD <info>Migration</info> Version: <comment>%s</comment>', Migrator::VERSION) . PHP_EOL);
+    }
+
     /**
      * @param InputInterface $input
      * @param OutputInterface $output
@@ -105,6 +111,8 @@ class Migrate extends Command
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->version($output);
+
         $this->configFile = $input->getOption('conf');
         if (! file_exists($this->configFile)) {
             $config = $this->askConfig($input, $output);
@@ -114,51 +122,60 @@ class Migrate extends Command
             $config = file_get_contents($this->configFile);
         }
 
-        $output->writeln(sprintf('FastD <info>Migration</info> Version: <comment>%s</comment>', Migrator::VERSION) . PHP_EOL);
-        $output->writeln($config);
-
         switch ($input->getArgument('behavior')) {
             case 'info':
+                $output->writeln($config);
                 $this->info($input, $output);
                 break;
             case 'cache-clear':
+                $output->writeln($config);
                 $this->cacheClear($input, $output);
                 break;
             case 'run':
+                $output->writeln($config);
                 $this->move($input, $output);
                 break;
             case 'dump':
+                $output->writeln($config);
                 $this->dump($input, $output);
                 break;
+            case 'help':
+            default:
+                $help = new HelpCommand();
+                $help->setCommand($this);
+                $help->run($input, $output);
         }
 
         return 0;
     }
 
     /**
+     * @param InputInterface $input
      * @param OutputInterface $output
      * @param Table $table
-     * @return SymfonyTable
+     * @return SymfonyTable|null
      */
-    protected function renderTableInfo(OutputInterface $output, Table $table)
+    protected function renderTableInfo(InputInterface $input, OutputInterface $output, Table $table)
     {
-        $t = new SymfonyTable($output);
         $output->writeln(sprintf('Table: <comment>%s</comment>', $table->getTableName()));
-        $t->setHeaders(array('Field', 'Type', 'Nullable', 'Key', 'Default', 'Extra'));
-        foreach ($table->getColumns() as $column) {
-            $t->addRow(
-                [
-                    $column->getName(),
-                    $column->getType().($column->getLength() <= 0 ? '' : '('.$column->getLength().')'),
-                    $column->isNullable() ? 'YES' : 'NO',
-                    null === $column->getKey() ? '' : $column->getKey()->getKey(),
-                    $column->getDefault(),
-                    (null == $column->getComment()) ? '' : ('comment:'. $column->getComment()),
-                ]
-            );
-        }
+        if ($input->hasParameterOption(['--info', '-i']) || !empty($input->getArgument('table'))) {
+            $t = new SymfonyTable($output);
+            $t->setHeaders(array('Field', 'Type', 'Nullable', 'Key', 'Default', 'Extra'));
+            foreach ($table->getColumns() as $column) {
+                $t->addRow(
+                    [
+                        $column->getName(),
+                        $column->getType().($column->getLength() <= 0 ? '' : '('.$column->getLength().')'),
+                        $column->isNullable() ? 'YES' : 'NO',
+                        null === $column->getKey() ? '' : $column->getKey()->getKey(),
+                        $column->getDefault(),
+                        (null == $column->getComment()) ? '' : ('comment:'. $column->getComment()),
+                    ]
+                );
+            }
 
-        return $t;
+            $t->render();
+        }
     }
 
     /**
@@ -189,7 +206,7 @@ class Migrate extends Command
         $tables = $builder->extract($tableName = $input->getArgument('table'));
 
         foreach ($tables as $table) {
-            $this->renderTableInfo($output, $table)->render();
+            $this->renderTableInfo($input, $output, $table);
         }
     }
 
@@ -201,7 +218,9 @@ class Migrate extends Command
      */
     public function cacheClear(InputInterface $input, OutputInterface $output)
     {
-        foreach (glob(__DIR__ . '/.cache/tables/*') as $file) {
+        $cachePath = __DIR__ . '/.cache/tables';
+        $output->writeln(sprintf('Cache path: <comment>%s</comment>', $cachePath));
+        foreach (glob($cachePath . '/*') as $file) {
             unlink($file);
             $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> <comment>cache is clean</comment> <info>done.</info>', pathinfo($file, PATHINFO_FILENAME)));
         }
@@ -214,7 +233,7 @@ class Migrate extends Command
     public function move(InputInterface $input, OutputInterface $output)
     {
         $builder = new TableBuilder($this->createConnection());
-        $path = realpath($input->getParameterOption(['--path', '-p']));
+        $path = realpath($input->getOption('--path'));
 
         foreach (glob($path.'/*.php') as $file) {
             $className = pathinfo($file, PATHINFO_FILENAME);
@@ -223,15 +242,13 @@ class Migrate extends Command
             if ($migration instanceof MigrationAbstract) {
                 $table = $migration->setUp();
                 try {
+                    $this->renderTableInfo($input, $output, $table);
                     // not change
                     if ('' === $builder->update($table)->getTableInfo()) {
                         $output->writeln(sprintf('  <comment>!!</comment> Table <info>"%s"</info> <comment>no change.</comment>', $table->getTableName()));
                     } else {
                         $builder->update($table)->execute();
                         $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> <comment>migrating</comment> <info>done.</info>', $table->getTableName()));
-                    }
-                    if ($input->hasParameterOption(['--info', '-i'])) {
-                        $this->renderTableInfo($output, $table)->render();
                     }
                 } catch (\PDOException $e) {
                     $output->writeln(sprintf("<fg=red>✗</> %s \n  File: %s\n  Line: %s\n", $e->getMessage(), $e->getFile(), $e->getLine()));
@@ -249,10 +266,11 @@ class Migrate extends Command
     public function dump(InputInterface $input, OutputInterface $output)
     {
         $builder = new TableBuilder($this->createConnection());
-
-        $path = realpath($input->getParameterOption(['--path', '-p']));
+        $path = $input->getOption('path');
+        $this->targetDirectory($path);
         $tables = $builder->extract($tableName = $input->getArgument('table'));
         foreach ($tables as $table) {
+            $this->renderTableInfo($input, $output, $table);
             $name = $this->classRename($table);
             $file = $path . '/' . $name . '.php';
             $content = $this->dumpPhpFile($table);
@@ -262,9 +280,6 @@ class Migrate extends Command
                 $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>', $table->getTableName()));
             } else {
                 $output->writeln(sprintf('  <comment>!!</comment> Dump table "<comment>%s</comment>" is <comment>not change</comment>', $table->getTableName()));
-            }
-            if ($input->hasParameterOption(['--info', '-i'])) {
-                $this->renderTableInfo($output, $table)->render();
             }
         }
     }
