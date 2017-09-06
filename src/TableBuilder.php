@@ -426,9 +426,9 @@ WHERE
         if (false === $this->pdo->exec($this->getTableInfo())) {
             list($code, $errorCode, $message) = $this->pdo->errorInfo();
             throw new \PDOException(sprintf('ERROR %s (%s): %s', $code, $errorCode, $message));
+        } else {
+            $this->saveCache($this->table);
         }
-
-        $this->saveCache($this->table);
 
         return true;
     }

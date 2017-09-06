@@ -104,6 +104,13 @@ class Migrate extends Command
         $output->writeln(sprintf('FastD <info>Migration</info> Version: <comment>%s</comment>', Migrator::VERSION) . PHP_EOL);
     }
 
+    public function verbosity(OutputInterface $output, Table $table)
+    {
+        if ($output->getVerbosity() >= OutputInterface::VERBOSITY_DEBUG) {
+            $output->writeln('verbosity');
+        }
+    }
+
     /**
      * @param InputInterface $input
      * @param OutputInterface $output
@@ -157,8 +164,8 @@ class Migrate extends Command
      */
     protected function renderTableInfo(InputInterface $input, OutputInterface $output, Table $table)
     {
-        $output->writeln(sprintf('Table: <comment>%s</comment>', $table->getTableName()));
-        if ($input->hasParameterOption(['--info', '-i']) || !empty($input->getArgument('table'))) {
+        if ($input->hasParameterOption(['--info', '-i'])) {
+            $output->writeln(sprintf('Table: <comment>%s</comment>', $table->getTableName()));
             $t = new SymfonyTable($output);
             $t->setHeaders(array('Field', 'Type', 'Nullable', 'Key', 'Default', 'Extra'));
             foreach ($table->getColumns() as $column) {
@@ -179,12 +186,11 @@ class Migrate extends Command
     }
 
     /**
-     * @param Table $table
+     * @param $name
      * @return string
      */
-    protected function classRename(Table $table)
+    protected function classRename($name)
     {
-        $name = $table->getTableName();
         if (strpos($name, '_')) {
             $arr = explode('_', $name);
             $name = array_shift($arr);
@@ -233,9 +239,10 @@ class Migrate extends Command
     public function move(InputInterface $input, OutputInterface $output)
     {
         $builder = new TableBuilder($this->createConnection());
-        $path = realpath($input->getOption('--path'));
+        $path = $input->getOption('path');
+        $table = $this->classRename($input->getArgument('table'));
 
-        foreach (glob($path.'/*.php') as $file) {
+        $move = function ($file) use ($input, $output, $builder) {
             $className = pathinfo($file, PATHINFO_FILENAME);
             include_once $file;
             $migration = new $className();
@@ -244,7 +251,7 @@ class Migrate extends Command
                 try {
                     $this->renderTableInfo($input, $output, $table);
                     // not change
-                    if ('' === $builder->update($table)->getTableInfo()) {
+                    if ('' === ($sql = $builder->update($table)->getTableInfo())) {
                         $output->writeln(sprintf('  <comment>!!</comment> Table <info>"%s"</info> <comment>no change.</comment>', $table->getTableName()));
                     } else {
                         $builder->update($table)->execute();
@@ -255,6 +262,14 @@ class Migrate extends Command
                 }
             } else {
                 $output->writeln(sprintf('  <comment>!!</comment> Warning: Migrate class "<comment>%s</comment>" is not implement "<comment>%s</comment>"', $className, MigrationAbstract::class));
+            }
+        };
+
+        if (file_exists($path . '/' . $table . '.php')) {
+            $move($path . '/' . $table . '.php');
+        } else {
+            foreach (glob($path.'/*.php') as $file) {
+                $move($file);
             }
         }
     }
@@ -270,8 +285,7 @@ class Migrate extends Command
         $this->targetDirectory($path);
         $tables = $builder->extract($tableName = $input->getArgument('table'));
         foreach ($tables as $table) {
-            $this->renderTableInfo($input, $output, $table);
-            $name = $this->classRename($table);
+            $name = $this->classRename($table->getTableName());
             $file = $path . '/' . $name . '.php';
             $content = $this->dumpPhpFile($table);
             $contentHash = hash('md5', $content);
@@ -281,6 +295,8 @@ class Migrate extends Command
             } else {
                 $output->writeln(sprintf('  <comment>!!</comment> Dump table "<comment>%s</comment>" is <comment>not change</comment>', $table->getTableName()));
             }
+            $this->renderTableInfo($input, $output, $table);
+            $this->verbosity($output, $table);
         }
     }
 
@@ -290,7 +306,7 @@ class Migrate extends Command
      */
     protected function dumpPhpFile(Table $table)
     {
-        $name = $this->classRename($table);
+        $name = $this->classRename($table->getTableName());
 
         $code = ['$table'];
         foreach ($table->getColumns() as $column) {

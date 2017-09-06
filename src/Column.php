@@ -114,6 +114,8 @@ class Column
      */
     public function __construct($columnName, $type, $length = null, $nullable = false, $default = '', $comment = '')
     {
+        $type = strtolower($type);
+
         if (!array_key_exists($type, $this->columns)) {
             throw new \LogicException(sprintf('unknown data type %s', $type));
         }
@@ -122,7 +124,7 @@ class Column
 
         $this->name = $columnName;
 
-        $this->type = strtoupper($type);
+        $this->type = $type;
 
         $this->length = empty($length) ? $defaultLength : $length;
 
