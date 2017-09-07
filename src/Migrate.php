@@ -40,7 +40,7 @@ class Migrate extends Command
             ->addArgument('behavior', InputArgument::OPTIONAL, 'Migration behavior <comment>[info|dump|run|cache-clear]</comment>', 'help')
             ->addArgument('table', InputArgument::OPTIONAL, 'Migration table name', null)
             ->addOption('conf', 'c', InputOption::VALUE_OPTIONAL, 'Config file', './migrate.yml')
-            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './migration')
+            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './seed')
             ->addOption('data', 'd', InputOption::VALUE_OPTIONAL, 'Insert dataset in to table.', './dataset')
             ->addOption('info', 'i', InputOption::VALUE_NONE, 'Show table info')
         ;
@@ -209,7 +209,7 @@ class Migrate extends Command
     {
         $builder = new TableBuilder($this->createConnection());
 
-        $tables = $builder->extract($tableName = $input->getArgument('table'));
+        $tables = $builder->extract($input->getArgument('table'));
 
         foreach ($tables as $table) {
             $this->renderTableInfo($input, $output, $table);
