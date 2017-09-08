@@ -10,15 +10,15 @@
 
 ![usage](docs/2017-04-30%2014.20.26.gif)
 
-##### Dump
+##### 导出表结构(dump)
 
 从数据库已有表中迁移到 PHP 文件
  
 ```
-php migrate dump [-p|--path]
+php migrate dump [table name] [-p|--path]
 ```
 
-##### Run
+##### 执行迁移(run)
 
 将PHP文件迁移到 MySQL 数据表
 
@@ -26,10 +26,22 @@ php migrate dump [-p|--path]
 php migrate run [-p|--path]
 ```
 
-##### Cache Clean
+##### 清除缓存(cache-clear)
 
 ```
 php migrate cache-clear
+```
+
+##### 创建结构文件(create)
+
+```
+php migrate create [table]
+```
+
+##### 查看表结构(info)
+
+```
+php migrate info [table]
 ```
 
 ### Support
