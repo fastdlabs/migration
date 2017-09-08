@@ -9,7 +9,6 @@
 
 namespace FastD\Migration;
 
-
 use FastD\QueryBuilder\MySqlBuilder;
 use PDO;
 use Symfony\Component\Console\Command\Command;
@@ -40,10 +39,14 @@ class Migrate extends Command
 
     public function configure()
     {
-        $this
-            ->setName('migrate')
+        $this->setName('migrate')
             ->setDescription('Migration database to php')
-            ->addArgument('behavior', InputArgument::OPTIONAL, 'Migration behavior <comment>[info|create|dump|run|cache-clear]</comment>', 'help')
+            ->addArgument(
+                'behavior',
+                InputArgument::OPTIONAL,
+                'Migration behavior <comment>[info|create|dump|run|cache-clear]</comment>',
+                'help'
+            )
             ->addArgument('table', InputArgument::OPTIONAL, 'Migration table name', null)
             ->addOption('conf', 'c', InputOption::VALUE_OPTIONAL, 'Config file', './migrate.yml')
             ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './seed')
@@ -111,7 +114,12 @@ class Migrate extends Command
 
     public function version(OutputInterface $output)
     {
-        $output->writeln(sprintf('FastD <info>Migration</info> Version: <comment>%s</comment>', Migrator::VERSION) . PHP_EOL);
+        $output->writeln(
+            sprintf(
+                'FastD <info>Migration</info> Version: <comment>%s</comment>',
+                Migrator::VERSION
+            ) . PHP_EOL
+        );
     }
 
     public function verbosity(OutputInterface $output, Table $table)
@@ -233,7 +241,10 @@ class Migrate extends Command
         $name = $this->classRename($table->getTableName());
         $file = $path . '/' . $name . '.php';
         file_put_contents($file, $content);
-        $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>', $table->getTableName()));
+        $output->writeln(sprintf(
+            '  <info>✔</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>',
+            $table->getTableName()
+        ));
     }
 
     /**
@@ -268,7 +279,10 @@ class Migrate extends Command
         if (!empty($files)) {
             foreach ($files as $file) {
                 unlink($file);
-                $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> cache is clean <info>done.</info>', pathinfo($file, PATHINFO_FILENAME)));
+                $output->writeln(sprintf(
+                    '  <info>✔</info> Table <info>"%s"</info> cache is clean <info>done.</info>',
+                    pathinfo($file, PATHINFO_FILENAME)
+                ));
             }
         } else {
             $output->writeln(sprintf('  <comment>!!</comment> Empty cache.'));
@@ -293,10 +307,17 @@ class Migrate extends Command
                 $table = $migration->setUp();
                 try {
                     if ('' === ($sql = $builder->update($table)->getTableInfo())) {
-                        $output->writeln(sprintf('  <comment>!!</comment> Table <info>"%s"</info> <comment>no change.</comment>', $table->getTableName()));
+                        $output->writeln(sprintf(
+                            '  <comment>!!</comment> Table <info>"%s"</info> <comment>no change.</comment>',
+                            $table->getTableName()
+                        ));
                     } else {
                         $builder->update($table)->execute();
-                        $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> <comment>migrating</comment> <info>done.</info>', $table->getTableName()));
+                        $output->writeln(sprintf(
+                            '  <info>✔</info> Table <info>"%s"</info>'.
+                            ' <comment>migrating</comment> <info>done.</info>',
+                            $table->getTableName()
+                        ));
                     }
                     if (($dataPath = $input->getOption('data'))) {
                         $tableName = $table->getTableName();
@@ -310,16 +331,32 @@ class Migrate extends Command
                                     $rowsCount++;
                                 }
                             }
-                            $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> insert data: <info>%s</info>', $tableName, $rowsCount));
+                            $output->writeln(sprintf(
+                                '  <info>✔</info> Table <info>"%s"</info> insert data: <info>%s</info>',
+                                $tableName,
+                                $rowsCount
+                            ));
                         }
                     }
                     $this->renderTableInfo($input, $output, $table);
                 } catch (\PDOException $e) {
-                    $output->writeln(sprintf("<fg=red>✗</> %s \n  File: %s\n  Line: %s\n", $e->getMessage(), $e->getFile(), $e->getLine()));
+                    $output->writeln(sprintf(
+                        "<fg=red>✗</> %s \n  File: %s\n  Line: %s\n",
+                        $e->getMessage(),
+                        $e->getFile(),
+                        $e->getLine()
+                    ));
                 }
                 $this->verbosity($output, $table);
             } else {
-                $output->writeln(sprintf('  <comment>!!</comment> Warning: Migrate class "<comment>%s</comment>" is not implement "<comment>%s</comment>"', $className, MigrationAbstract::class));
+                $output->writeln(
+                    sprintf(
+                        '  <comment>!!</comment>'.
+                        ' Warning: Migrate class "<comment>%s</comment>" is not implement "<comment>%s</comment>"',
+                        $className,
+                        MigrationAbstract::class
+                    )
+                );
             }
         };
 
@@ -349,9 +386,15 @@ class Migrate extends Command
             $contentHash = hash('md5', $content);
             if (!file_exists($file) || (file_exists($file) && $contentHash !== hash_file('md5', $file))) {
                 file_put_contents($file, $content);
-                $output->writeln(sprintf('  <info>✔</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>', $table->getTableName()));
+                $output->writeln(sprintf(
+                    '  <info>✔</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>',
+                    $table->getTableName()
+                ));
             } else {
-                $output->writeln(sprintf('  <comment>!!</comment> Dump table "<comment>%s</comment>" is <comment>not change</comment>', $table->getTableName()));
+                $output->writeln(sprintf(
+                    '  <comment>!!</comment> Dump table "<comment>%s</comment>" is <comment>not change</comment>',
+                    $table->getTableName()
+                ));
             }
             $this->renderTableInfo($input, $output, $table);
         }
@@ -367,14 +410,15 @@ class Migrate extends Command
 
         $code = ['$table'];
         foreach ($table->getColumns() as $column) {
-            $code[] = str_repeat(' ', 12) . sprintf(
-                "->addColumn('%s', '%s', %s, %s, '%s', '%s')",
-                $column->getName(),
-                $column->getType(),
-                null === $column->getLength() ? 'null' : $column->getLength(),
-                false === $column->isNullable() ? 'false' : 'true',
-                $column->getDefault(),
-                $column->getComment()
+            $code[] = str_repeat(' ', 12) .
+                sprintf(
+                    "->addColumn('%s', '%s', %s, %s, '%s', '%s')",
+                    $column->getName(),
+                    $column->getType(),
+                    null === $column->getLength() ? 'null' : $column->getLength(),
+                    false === $column->isNullable() ? 'false' : 'true',
+                    $column->getDefault(),
+                    $column->getComment()
                 );
         }
         $code[] = str_repeat(' ', 8) . ';';

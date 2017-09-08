@@ -19,7 +19,7 @@ class ColumnTest extends PHPUnit_Framework_TestCase
         $this->assertFalse($column->isUnique());
         $this->assertFalse($column->isPrimary());
         $this->assertFalse($column->isIncrement());
-        $this->assertEquals('VARCHAR', $column->getType());
+        $this->assertEquals('varchar', $column->getType());
         $this->assertEmpty($column->getComment());
         $this->assertEmpty($column->getKey());
         $this->assertEquals('test', $column->getName());
