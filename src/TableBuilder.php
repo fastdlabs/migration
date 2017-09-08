@@ -153,7 +153,7 @@ class TableBuilder
   EXTRA AS `extra`
 FROM information_schema.COLUMNS
 WHERE
-  TABLE_NAME = \'' . $table . '\';'
+  TABLE_NAME = \'' . $table . '\' AND TABLE_SCHEMA = database();'
             )
             ->fetchAll();
     }

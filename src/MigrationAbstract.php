@@ -19,9 +19,4 @@ abstract class MigrationAbstract
      * @return Table
      */
     abstract public function setUp();
-
-    /**
-     * @return void
-     */
-    abstract public function dataSet();
 }
