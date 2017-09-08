@@ -19,7 +19,7 @@ class TableBuilderTest extends PHPUnit_Framework_TestCase
         $builder = new TableBuilder();
         $sql = <<<SQL
 CREATE TABLE IF NOT EXISTS `test` (
-`test` VARCHAR(200) NOT NULL DEFAULT "" COMMENT ""
+`test` varchar(200) NOT NULL DEFAULT "" COMMENT ""
 ) ENGINE InnoDB CHARSET utf8 COMMENT "";
 SQL;
         $this->assertEquals($sql, $builder->create($table)->getTableInfo());
@@ -30,7 +30,7 @@ SQL;
         $table = (new Table('test'))->addColumn('test', 'varchar');
         $builder = new TableBuilder();
         $sql = <<<SQL
-ALTER TABLE `test` ADD `test` VARCHAR(200) NOT NULL DEFAULT "" COMMENT "";
+ALTER TABLE `test` ADD `test` varchar(200) NOT NULL DEFAULT "" COMMENT "";
 SQL;
         $this->assertEquals($sql, $builder->alter($table)->getTableInfo());
     }

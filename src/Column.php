@@ -9,7 +9,6 @@
 
 namespace FastD\Migration;
 
-
 /**
  * Class Column
  * @package FastD\Migration

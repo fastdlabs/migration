@@ -293,11 +293,13 @@ WHERE
         $schema = $force ? ('DROP TABLE IF EXISTS `' . $table->getTableName() . '`;' . PHP_EOL . PHP_EOL) : '';
 
         $schema .= 'CREATE TABLE IF NOT EXISTS `' . $table->getTableName() . '` (';
-        $schema .= PHP_EOL . implode(',' . PHP_EOL, $columns) . (empty($keys) ? PHP_EOL : (',' . PHP_EOL . implode(
-                    ',' . PHP_EOL,
-                    $keys
-                ) . PHP_EOL));
-        $schema .= ') ENGINE ' . $table->getEngine() . ' CHARSET ' . $table->getCharset() . ' COMMENT "' . $table->getComment() . '";';
+        $schema .= PHP_EOL .
+            implode(',' . PHP_EOL, $columns) .
+            (empty($keys) ? PHP_EOL : (',' . PHP_EOL . implode(',' . PHP_EOL, $keys) . PHP_EOL));
+        $schema .= ') ENGINE ' .
+            $table->getEngine() .
+            ' CHARSET ' . $table->getCharset() .
+            ' COMMENT "' . $table->getComment() . '";';
 
         $this->sql = $schema;
 
@@ -340,7 +342,9 @@ WHERE
                     $change[] = implode(
                         ' ',
                         [
-                            'ALTER TABLE `' . $table->getTableName() . '` CHANGE `' . $name . '` `' . $column->getName() . '`',
+                            'ALTER TABLE `' .
+                            $table->getTableName() . '` CHANGE `' .
+                            $name . '` `' . $column->getName() . '`',
                             $column->getType() . (!empty($column->getLength()) ? '(' . $column->getLength() . ')' : ''),
                             ($column->isUnsigned()) ? 'UNSIGNED' : '',
                             ($column->isNullable() ? '' : ('NOT NULL')),
@@ -369,7 +373,8 @@ WHERE
                 $keys[] = implode(
                     ' ',
                     [
-                        'ALTER TABLE `' . $table->getTableName() . '` ADD ' . ($column->getKey()->isPrimary() ? 'PRIMARY KEY' : $column->getKey()->getKey()),
+                        'ALTER TABLE `' . $table->getTableName() .
+                        '` ADD ' . ($column->getKey()->isPrimary() ? 'PRIMARY KEY' : $column->getKey()->getKey()),
                         '`index_' . $column->getName() . '` (' . $column->getName() . ');',
                     ]
                 );

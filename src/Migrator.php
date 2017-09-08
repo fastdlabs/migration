@@ -6,9 +6,7 @@
  * @see      https://www.github.com/janhuang
  * @see      http://www.fast-d.cn/
  */
-
 namespace FastD\Migration;
-
 
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\ArgvInput;

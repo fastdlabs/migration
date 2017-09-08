@@ -14,7 +14,7 @@ namespace FastD\Migration;
  * @package FastD\Migration
  */
 class Table
-{  
+{
     /**
      * @var string
      */
@@ -74,8 +74,14 @@ class Table
      * @param string $comment
      * @return Table
      */
-    public function addColumn($column, $type = 'varchar', $length = null, $nullable = false, $default = '', $comment = '')
-    {
+    public function addColumn(
+        $column,
+        $type = 'varchar',
+        $length = null,
+        $nullable = false,
+        $default = '',
+        $comment = ''
+    ) {
         $column = new Column($column, $type, $length, $nullable, $default, $comment);
 
         $this->columns[$column->getName()] = $column;
