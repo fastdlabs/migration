@@ -9,8 +9,10 @@
 
 namespace FastD\Migration;
 
-use FastD\QueryBuilder\MySqlBuilder;
+
 use PDO;
+use RuntimeException;
+use FastD\QueryBuilder\MySqlBuilder;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Command\HelpCommand;
 use Symfony\Component\Console\Helper\Table as SymfonyTable;
@@ -64,10 +66,10 @@ class Migrate extends Command
         if (null === $this->connection) {
             if (null === $config) {
                 if (!file_exists($this->configFile)) {
-                    throw new \RuntimeException('cannot such config file '.$this->configFile);
+                    throw new RuntimeException('cannot such config file '.$this->configFile);
                 }
 
-                $config = Yaml::parse(file_get_contents($this->configFile));
+                $config = load($this->configFile);
             }
 
             $this->connection = new PDO(
@@ -183,7 +185,6 @@ class Migrate extends Command
      * @param InputInterface $input
      * @param OutputInterface $output
      * @param Table $table
-     * @return SymfonyTable|null
      */
     protected function renderTableInfo(InputInterface $input, OutputInterface $output, Table $table)
     {
