@@ -141,13 +141,15 @@ class Migrate extends Command
     {
         $this->version($output);
 
-        $this->configFile = $input->getOption('conf');
-        if (! file_exists($this->configFile)) {
-            $config = $this->askConfig($input, $output);
-            $config = Yaml::dump($config);
-            file_put_contents($this->configFile, $config);
-        } else {
-            $config = file_get_contents($this->configFile);
+        if (null === $this->connection) {
+            $this->configFile = $input->getOption('conf');
+            if (! file_exists($this->configFile)) {
+                $config = $this->askConfig($input, $output);
+                $config = Yaml::dump($config);
+                file_put_contents($this->configFile, $config);
+            } else {
+                $config = file_get_contents($this->configFile);
+            }
         }
 
         switch ($input->getArgument('behavior')) {
