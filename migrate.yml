@@ -1,5 +1,5 @@
 host: 127.0.0.1
 user: root
 pass: null
-dbname: fastd
+dbname: ci
 charset: utf8

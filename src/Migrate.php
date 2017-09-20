@@ -11,7 +11,6 @@ namespace FastD\Migration;
 
 
 use PDO;
-use RuntimeException;
 use FastD\QueryBuilder\MySqlBuilder;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Command\HelpCommand;
@@ -36,20 +35,38 @@ class Migrate extends Command
      */
     protected $config = [];
 
-    /**`
+    /**
      * @var string
      */
-    protected $configFile;
+    protected $dataSetPath = '';
+
+    /**
+     * @var string
+     */
+    protected $seedPath = '';
 
     /**
      * @var PDO
      */
     protected $connection;
 
+    public function __construct(array $config = [])
+    {
+        $this->config = $config;
+        if (isset($this->config['seed_path'])) {
+            $this->seedPath = $this->config['seed_path'];
+            unset($this->config['seed_path']);
+        }
+        if (isset($this->config['data_set_path'])) {
+            $this->dataSetPath = $this->config['data_set_path'];
+            unset($this->config['data_set_path']);
+        }
+        parent::__construct('migrate');
+    }
+
     public function configure()
     {
-        $this->setName('migrate')
-            ->setDescription('Migration database to php')
+        $this->setDescription('Migration database to php')
             ->addArgument(
                 'behavior',
                 InputArgument::OPTIONAL,
@@ -58,31 +75,22 @@ class Migrate extends Command
             )
             ->addArgument('table', InputArgument::OPTIONAL, 'Migration table name', null)
             ->addOption('conf', 'c', InputOption::VALUE_OPTIONAL, 'Config file', './migrate.yml')
-            ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './seed')
+            ->addOption('seed', 's', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './seed')
             ->addOption('data', 'd', InputOption::VALUE_OPTIONAL, 'Insert dataset in to table.', './dataset')
             ->addOption('info', 'i', InputOption::VALUE_NONE, 'Show table info')
         ;
     }
 
     /**
-     * @param array $config
      * @return \PDO
      */
-    protected function createConnection(array $config = null)
+    protected function createConnection()
     {
         if (null === $this->connection) {
-            if (null === $config) {
-                if (!file_exists($this->configFile)) {
-                    throw new RuntimeException('cannot such config file '.$this->configFile);
-                }
-
-                $config = load($this->configFile);
-            }
-
             $this->connection = new PDO(
-                sprintf('mysql:host=%s;dbname=%s', $config['host'], $config['dbname']),
-                $config['user'],
-                $config['pass']
+                sprintf('mysql:host=%s;dbname=%s', $this->config['host'], $this->config['dbname']),
+                $this->config['user'],
+                $this->config['pass']
             );
         }
 
@@ -140,6 +148,14 @@ class Migrate extends Command
     }
 
     /**
+     * @param OutputInterface $output
+     */
+    protected function renderConfig(OutputInterface $output)
+    {
+        $output->writeln(Yaml::dump($this->config));
+    }
+
+    /**
      * @param InputInterface $input
      * @param OutputInterface $output
      * @return int
@@ -148,36 +164,36 @@ class Migrate extends Command
     {
         $this->version($output);
 
-        if (null === $this->connection) {
-            $this->configFile = $input->getOption('conf');
-            if (! file_exists($this->configFile)) {
+        if (null === $this->connection && empty($this->config)) {
+            $file = $input->getOption('conf');
+            if (! file_exists($file)) {
                 $config = $this->askConfig($input, $output);
-                $this->config = Yaml::dump($config);
-                file_put_contents($this->configFile, $config);
+                file_put_contents($file, Yaml::dump($config));
             } else {
-                $this->config = file_get_contents($this->configFile);
+                $config = load($file);
             }
+            $this->config = $config;
         }
 
         switch ($input->getArgument('behavior')) {
             case 'create':
-                $output->writeln($this->config);
+                $this->renderConfig($output);
                 $this->create($input, $output);
                 break;
             case 'info':
-                $output->writeln($this->config);
+                $this->renderConfig($output);
                 $this->info($input, $output);
                 break;
             case 'cache-clear':
-                $output->writeln($this->config);
+                $this->renderConfig($output);
                 $this->cacheClear($input, $output);
                 break;
             case 'run':
-                $output->writeln($this->config);
+                $this->renderConfig($output);
                 $this->move($input, $output);
                 break;
             case 'dump':
-                $output->writeln($this->config);
+                $this->renderConfig($output);
                 $this->dump($input, $output);
                 break;
             case 'help':
@@ -269,9 +285,13 @@ class Migrate extends Command
 
         $tables = $builder->extract($tableName);
 
-        foreach ($tables as $table) {
-            $output->writeln(sprintf('Table: <comment>%s</comment>', $table->getTableName()));
-            $this->renderTableInfo($input, $output, $table);
+        if (!empty($tables)) {
+            foreach ($tables as $table) {
+                $output->writeln(sprintf('Table: <comment>%s</comment>', $table->getTableName()));
+                $this->renderTableInfo($input, $output, $table);
+            }
+        } else {
+            $output->writeln(sprintf('  <comment>!!</comment> Table <comment>"%s"</comment> is not exists.', $tableName));
         }
     }
 
@@ -283,9 +303,8 @@ class Migrate extends Command
      */
     public function cacheClear(InputInterface $input, OutputInterface $output)
     {
-        $cachePath = __DIR__ . '/.cache/tables';
-        $output->writeln(sprintf('Cache path: <info>%s</info>', $cachePath));
-        $files = glob($cachePath . '/*');
+        $output->writeln(sprintf('Cache path: <info>%s</info>', __DIR__ . '/.cache'));
+        $files = glob(__DIR__ . '/.cache/tables' . '/*');
         if (!empty($files)) {
             foreach ($files as $file) {
                 unlink($file);
@@ -297,6 +316,19 @@ class Migrate extends Command
         } else {
             $output->writeln(sprintf('  <comment>!!</comment> Empty cache.'));
         }
+
+        $files = glob(__DIR__ . '/.cache/dataset' . '/*');
+        if (!empty($files)) {
+            foreach ($files as $file) {
+                unlink($file);
+                $output->writeln(sprintf(
+                    '  <info>✔</info> Table <info>"%s"</info> dataset is clean <info>done.</info>',
+                    pathinfo($file, PATHINFO_FILENAME)
+                ));
+            }
+        } else {
+            $output->writeln(sprintf('  <comment>!!</comment> Empty dataset.'));
+        }
     }
 
     /**
@@ -306,7 +338,7 @@ class Migrate extends Command
     public function move(InputInterface $input, OutputInterface $output)
     {
         $builder = new TableBuilder($this->createConnection());
-        $path = $input->getOption('path');
+        $path = $input->getOption('seed');
         $table = $this->classRename($input->getArgument('table'));
 
         $move = function ($file) use ($input, $output, $builder) {
@@ -330,10 +362,12 @@ class Migrate extends Command
                         ));
                     }
                     if (($dataPath = $input->getOption('data'))) {
+                        $cachePath = __DIR__ . '/.cache/dataset';
+                        $this->targetDirectory($cachePath);
                         $tableName = $table->getTableName();
                         $dataFile = $dataPath . '/' . $tableName . '.yml';
                         $rowsCount = 0;
-                        if (file_exists($dataFile)) {
+                        if (file_exists($dataFile) && !file_exists($cachePath . '/' . $tableName)) {
                             $dataset = Yaml::parse(file_get_contents($dataFile));
                             foreach ($dataset as $row) {
                                 $sql = (new MySqlBuilder($tableName))->insert($row);
@@ -342,10 +376,12 @@ class Migrate extends Command
                                 }
                             }
                             $output->writeln(sprintf(
-                                '  <info>✔</info> Table <info>"%s"</info> insert data: <info>%s</info>',
+                                '      <info>-></info> Table <info>"%s"</info> insert data: <info>%s</info>',
                                 $tableName,
                                 $rowsCount
                             ));
+
+                            file_put_contents($cachePath . '/' . $tableName, 1);
                         }
                     }
                     $this->renderTableInfo($input, $output, $table);
@@ -386,7 +422,7 @@ class Migrate extends Command
     public function dump(InputInterface $input, OutputInterface $output)
     {
         $builder = new TableBuilder($this->createConnection());
-        $path = $input->getOption('path');
+        $path = $input->getOption('seed');
         $this->targetDirectory($path);
         $tables = $builder->extract($tableName = $input->getArgument('table'));
         foreach ($tables as $table) {
