@@ -29,6 +29,13 @@ use Symfony\Component\Yaml\Yaml;
  */
 class Migrate extends Command
 {
+    /**
+     * The database config info.
+     *
+     * @var array
+     */
+    protected $config = [];
+
     /**`
      * @var string
      */
@@ -145,32 +152,32 @@ class Migrate extends Command
             $this->configFile = $input->getOption('conf');
             if (! file_exists($this->configFile)) {
                 $config = $this->askConfig($input, $output);
-                $config = Yaml::dump($config);
+                $this->config = Yaml::dump($config);
                 file_put_contents($this->configFile, $config);
             } else {
-                $config = file_get_contents($this->configFile);
+                $this->config = file_get_contents($this->configFile);
             }
         }
 
         switch ($input->getArgument('behavior')) {
             case 'create':
-                $output->writeln($config);
+                $output->writeln($this->config);
                 $this->create($input, $output);
                 break;
             case 'info':
-                $output->writeln($config);
+                $output->writeln($this->config);
                 $this->info($input, $output);
                 break;
             case 'cache-clear':
-                $output->writeln($config);
+                $output->writeln($this->config);
                 $this->cacheClear($input, $output);
                 break;
             case 'run':
-                $output->writeln($config);
+                $output->writeln($this->config);
                 $this->move($input, $output);
                 break;
             case 'dump':
-                $output->writeln($config);
+                $output->writeln($this->config);
                 $this->dump($input, $output);
                 break;
             case 'help':
