@@ -107,9 +107,10 @@ class TableBuilder
             ->query($sql)
             ->fetchAll();
         $result = [];
-        foreach ($tables as $key => $table) {
+        foreach ($tables as $table) {
             $table = array_values($table)[0];
             $result[$table] = $this->parseTable($table);
+            $this->saveCache($result[$table]);
         }
 
         return $result;
