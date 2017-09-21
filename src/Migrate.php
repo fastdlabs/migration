@@ -70,13 +70,14 @@ class Migrate extends Command
             ->addArgument(
                 'behavior',
                 InputArgument::OPTIONAL,
-                'Migration behavior <comment>[info|create|dump|run|cache-clear]</comment>',
+                'Migration behavior <comment>[info|seed|dump|run|cache]</comment>',
                 'help'
             )
             ->addArgument('table', InputArgument::OPTIONAL, 'Migration table name', null)
             ->addOption('conf', 'c', InputOption::VALUE_OPTIONAL, 'Config file', './migrate.yml')
             ->addOption('seed', 's', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './seed')
             ->addOption('data', 'd', InputOption::VALUE_OPTIONAL, 'Insert dataset in to table.', './dataset')
+            ->addOption('clear', null, InputOption::VALUE_NONE, 'Clear cache')
             ->addOption('info', 'i', InputOption::VALUE_NONE, 'Show table info')
         ;
     }
@@ -176,15 +177,15 @@ class Migrate extends Command
         }
 
         switch ($input->getArgument('behavior')) {
-            case 'create':
+            case 'seed':
                 $this->renderConfig($output);
-                $this->create($input, $output);
+                $this->seed($input, $output);
                 break;
             case 'info':
                 $this->renderConfig($output);
                 $this->info($input, $output);
                 break;
-            case 'cache-clear':
+            case 'cache':
                 $this->renderConfig($output);
                 $this->cacheClear($input, $output);
                 break;
@@ -253,24 +254,35 @@ class Migrate extends Command
      * @param InputInterface $input
      * @param OutputInterface $output
      */
-    public function create(InputInterface $input, OutputInterface $output)
+    public function seed(InputInterface $input, OutputInterface $output)
     {
-        $table = new Table($input->getArgument('table'));
+        $tableName = $input->getArgument('table');
+        if (empty($tableName)) {
+            throw new \RuntimeException('Table name is empty.');
+        }
+        $table = new Table($tableName);
         $table
             ->addColumn('id', 'int', null, false, 0, '')
             ->addColumn('created_at', 'datetime', null, false, 'CURRENT_TIMESTAMP', '')
             ->addColumn('updated_at', 'datetime', null, false, 'CURRENT_TIMESTAMP', '')
         ;
         $content = $this->dumpPhpFile($table);
-        $path = $input->getOption('path');
+        $path = $input->getOption('seed');
         $this->targetDirectory($path);
         $name = $this->classRename($table->getTableName());
         $file = $path . '/' . $name . '.php';
-        file_put_contents($file, $content);
-        $output->writeln(sprintf(
-            '  <info>✔</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>',
-            $table->getTableName()
-        ));
+        if (!file_exists($file)) {
+            file_put_contents($file, $content);
+            $output->writeln(sprintf(
+                '  <info>✔</info> Table <info>"%s"</info> <comment>dumping</comment> <info>done.</info>',
+                $table->getTableName()
+            ));
+        } else {
+            $output->writeln(sprintf(
+                '  <fg=red>✗</> Dump file <comment>"%s"</comment> exists',
+                $table->getTableName()
+            ));
+        }
     }
 
     /**
@@ -307,11 +319,14 @@ class Migrate extends Command
         $files = glob(__DIR__ . '/.cache/tables' . '/*');
         if (!empty($files)) {
             foreach ($files as $file) {
-                unlink($file);
-                $output->writeln(sprintf(
-                    '  <info>✔</info> Table <info>"%s"</info> cache is clean <info>done.</info>',
-                    pathinfo($file, PATHINFO_FILENAME)
-                ));
+                $output->writeln('  <info>-></info> ' . $file);
+                if ($input->hasParameterOption(['--clear'])) {
+                    unlink($file);
+                    $output->writeln(sprintf(
+                        '    <info>✔</info> Table <info>"%s"</info> cache is clean <info>done.</info>',
+                        pathinfo($file, PATHINFO_FILENAME)
+                    ));
+                }
             }
         } else {
             $output->writeln(sprintf('  <comment>!!</comment> Empty cache.'));
@@ -320,11 +335,14 @@ class Migrate extends Command
         $files = glob(__DIR__ . '/.cache/dataset' . '/*');
         if (!empty($files)) {
             foreach ($files as $file) {
-                unlink($file);
-                $output->writeln(sprintf(
-                    '  <info>✔</info> Table <info>"%s"</info> dataset is clean <info>done.</info>',
-                    pathinfo($file, PATHINFO_FILENAME)
-                ));
+                $output->writeln('  <info>-></info> ' . $file);
+                if ($input->hasParameterOption(['--clear'])) {
+                    unlink($file);
+                    $output->writeln(sprintf(
+                        '    <info>✔</info> Table <info>"%s"</info> dataset is clean <info>done.</info>',
+                        pathinfo($file, PATHINFO_FILENAME)
+                    ));
+                }
             }
         } else {
             $output->writeln(sprintf('  <comment>!!</comment> Empty dataset.'));
@@ -471,6 +489,8 @@ class Migrate extends Command
 
         $codeString = implode(PHP_EOL, $code);
 
+        $table = strtolower($table->getTableName());
+
         return <<<MIGRATION
 <?php
 
@@ -485,7 +505,7 @@ class {$name} extends MigrationAbstract
      */
     public function setUp()
     {
-        \$table = new Table('{$table->getTableName()}');
+        \$table = new Table('{$table}');
 
         {$codeString}
 
