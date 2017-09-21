@@ -44,6 +44,10 @@ class TableBuilder
     public function __construct(PDO $pdo = null)
     {
         $this->pdo = $pdo;
+
+        if (!file_exists($this->cachePath)) {
+            mkdir($this->cachePath, 0755, true);
+        }
     }
 
     /**
