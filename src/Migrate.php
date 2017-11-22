@@ -153,7 +153,10 @@ class Migrate extends Command
      */
     protected function renderConfig(OutputInterface $output)
     {
-        $output->writeln(Yaml::dump($this->config));
+        $config = $this->config;
+        $config['seed'] = $this->seedPath;
+        $config['dataset'] = $this->dataSetPath;
+        $output->writeln(Yaml::dump($config));
     }
 
     /**
