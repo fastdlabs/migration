@@ -179,12 +179,12 @@ class Migrate extends Command
             $this->config = $config;
         }
 
-        if (!empty($seed = $input->getOption('seed'))) {
-            $this->seedPath = $seed;
+        if ($input->hasParameterOption(['--seed', '-s'])) {
+            $this->seedPath = $input->getOption('seed');
         }
 
-        if (!empty($dataset = $input->getOption('data'))) {
-            $this->dataSetPath = $dataset;
+        if ($input->hasParameterOption(['--data', '-d'])) {
+            $this->dataSetPath = $input->getOption('data');
         }
 
         switch ($input->getArgument('behavior')) {
