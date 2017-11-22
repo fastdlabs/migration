@@ -394,7 +394,7 @@ class Migrate extends Command
                         $cachePath = __DIR__ . '/.cache/dataset';
                         $this->targetDirectory($cachePath);
                         $tableName = $table->getTableName();
-                        $dataFile = $dataPath . '/' . $tableName . '.yml';
+                        $dataFile = $this->dataSetPath . '/' . $tableName . '.yml';
                         $rowsCount = 0;
                         if (file_exists($dataFile) && !file_exists($cachePath . '/' . $tableName)) {
                             $dataset = Yaml::parse(file_get_contents($dataFile));
@@ -451,7 +451,7 @@ class Migrate extends Command
     public function dump(InputInterface $input, OutputInterface $output)
     {
         $builder = new TableBuilder($this->createConnection());
-        $path = $input->getOption('seed');
+        $path = $this->seedPath;
         $this->targetDirectory($path);
         $tables = $builder->extract($tableName = $input->getArgument('table'));
         foreach ($tables as $table) {
