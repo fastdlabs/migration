@@ -176,6 +176,14 @@ class Migrate extends Command
             $this->config = $config;
         }
 
+        if (!empty($seed = $input->getOption('seed'))) {
+            $this->seedPath = $seed;
+        }
+
+        if (!empty($dataset = $input->getOption('data'))) {
+            $this->dataSetPath = $dataset;
+        }
+
         switch ($input->getArgument('behavior')) {
             case 'seed':
                 $this->renderConfig($output);
@@ -267,7 +275,7 @@ class Migrate extends Command
             ->addColumn('updated_at', 'datetime', null, false, 'CURRENT_TIMESTAMP', '')
         ;
         $content = $this->dumpPhpFile($table);
-        $path = $input->getOption('seed');
+        $path = $this->seedPath;
         $this->targetDirectory($path);
         $name = $this->classRename($table->getTableName());
         $file = $path . '/' . $name . '.php';
@@ -356,7 +364,7 @@ class Migrate extends Command
     public function move(InputInterface $input, OutputInterface $output)
     {
         $builder = new TableBuilder($this->createConnection());
-        $path = $input->getOption('seed');
+        $path = $this->seedPath;
         $table = $this->classRename($input->getArgument('table'));
 
         $move = function ($file) use ($input, $output, $builder) {
@@ -379,7 +387,7 @@ class Migrate extends Command
                             $table->getTableName()
                         ));
                     }
-                    if (($dataPath = $input->getOption('data'))) {
+                    if (!empty($this->dataSetPath)) {
                         $cachePath = __DIR__ . '/.cache/dataset';
                         $this->targetDirectory($cachePath);
                         $tableName = $table->getTableName();
