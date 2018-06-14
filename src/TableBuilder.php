@@ -170,13 +170,13 @@ WHERE
     protected function parseColumn($schema)
     {
         $type = $schema['type'];
-        $pattern = '/(?<type>\w+)\(?(?<length>\d*)\)?\s?(?<unsigned>\w*)?/';
+        $pattern = "/(?<type>\w+)(.*\((?<length>[^\(\)]*)\))?\s?(?<unsigned>\w*)?/";
         preg_match($pattern, $type, $match);
 
         $column = new Column(
             $schema['field'],
             $match['type'],
-            (int)$match['length'],
+            $match['length'],
             $schema['nullable'] == 'NO' ? false : true,
             $schema['default'],
             $schema['comment']
@@ -260,7 +260,7 @@ WHERE
                     if (is_int($defaultValue)) {
                         $defaultValue = sprintf('%s', $defaultValue);
                     } else {
-                        $defaultValue = sprintf('"%s"', $defaultValue);
+                        $defaultValue = sprintf('\'%s\'', $defaultValue);
                     }
                 }
                 $default .= 'DEFAULT ' . $defaultValue;

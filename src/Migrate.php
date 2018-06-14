@@ -78,8 +78,7 @@ class Migrate extends Command
             ->addOption('seed', 's', InputOption::VALUE_OPTIONAL, 'Dump or run into tables path', './seed')
             ->addOption('data', 'd', InputOption::VALUE_OPTIONAL, 'Insert dataset in to table.', './dataset')
             ->addOption('clear', null, InputOption::VALUE_NONE, 'Clear cache')
-            ->addOption('info', 'i', InputOption::VALUE_NONE, 'Show table info')
-        ;
+            ->addOption('info', 'i', InputOption::VALUE_NONE, 'Show table info');
     }
 
     /**
@@ -125,7 +124,7 @@ class Migrate extends Command
      */
     protected function targetDirectory($path)
     {
-        if (! file_exists($path)) {
+        if (!file_exists($path)) {
             mkdir($path, 0755, true);
         }
     }
@@ -170,7 +169,7 @@ class Migrate extends Command
 
         if (null === $this->connection && empty($this->config)) {
             $file = $input->getOption('conf');
-            if (! file_exists($file)) {
+            if (!file_exists($file)) {
                 $config = $this->askConfig($input, $output);
                 file_put_contents($file, Yaml::dump($config));
             } else {
@@ -232,11 +231,11 @@ class Migrate extends Command
                 $t->addRow(
                     [
                         $column->getName(),
-                        $column->getType().($column->getLength() <= 0 ? '' : '('.$column->getLength().')'),
+                        $column->getType() . ($column->getLength() === null ? '' : '(' . $column->getLength() . ')'),
                         $column->isNullable() ? 'YES' : 'NO',
                         null === $column->getKey() ? '' : $column->getKey()->getKey(),
                         $column->getDefault(),
-                        (null == $column->getComment()) ? '' : ('comment:'. $column->getComment()),
+                        (null == $column->getComment()) ? '' : ('comment:' . $column->getComment()),
                     ]
                 );
             }
@@ -275,8 +274,7 @@ class Migrate extends Command
         $table
             ->addColumn('id', 'int', null, false, 0, '')
             ->addColumn('created_at', 'datetime', null, false, 'CURRENT_TIMESTAMP', '')
-            ->addColumn('updated_at', 'datetime', null, false, 'CURRENT_TIMESTAMP', '')
-        ;
+            ->addColumn('updated_at', 'datetime', null, false, 'CURRENT_TIMESTAMP', '');
         $content = $this->dumpPhpFile($table);
         $path = $this->seedPath;
         $this->targetDirectory($path);
@@ -385,7 +383,7 @@ class Migrate extends Command
                     } else {
                         $builder->update($table)->execute();
                         $output->writeln(sprintf(
-                            '  <info>✔</info> Table <info>"%s"</info>'.
+                            '  <info>✔</info> Table <info>"%s"</info>' .
                             ' <comment>migrating</comment> <info>done.</info>',
                             $table->getTableName()
                         ));
@@ -426,7 +424,7 @@ class Migrate extends Command
             } else {
                 $output->writeln(
                     sprintf(
-                        '  <comment>!!</comment>'.
+                        '  <comment>!!</comment>' .
                         ' Warning: Migrate class "<comment>%s</comment>" is not implement "<comment>%s</comment>"',
                         $className,
                         MigrationAbstract::class
@@ -438,7 +436,7 @@ class Migrate extends Command
         if (file_exists($path . '/' . $table . '.php')) {
             $move($path . '/' . $table . '.php');
         } else {
-            foreach (glob($path.'/*.php') as $file) {
+            foreach (glob($path . '/*.php') as $file) {
                 $move($file);
             }
         }
@@ -485,12 +483,18 @@ class Migrate extends Command
 
         $code = ['$table'];
         foreach ($table->getColumns() as $column) {
+
+            $length = null === $column->getLength() ? 'null' : $column->getLength();
+            if (false !== strpos($length, ',')) {
+                $length = '[' . $length . ']';
+            }
+
             $code[] = str_repeat(' ', 12) .
                 sprintf(
                     "->addColumn('%s', '%s', %s, %s, '%s', '%s')",
                     $column->getName(),
                     $column->getType(),
-                    null === $column->getLength() ? 'null' : $column->getLength(),
+                    $length,
                     false === $column->isNullable() ? 'false' : 'true',
                     $column->getDefault(),
                     $column->getComment()
