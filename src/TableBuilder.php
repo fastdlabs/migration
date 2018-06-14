@@ -215,9 +215,7 @@ WHERE
             return false;
         }
 
-        var_dump($value);
         $str = ord($value[0]);
-        var_dump($str);
 
         return ($str > 64 && $str < 91) ? true : false;
     }
