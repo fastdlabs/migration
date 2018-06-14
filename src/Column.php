@@ -56,6 +56,7 @@ class Column
         'polygon' => ['polygon', 1, 0],
         'geometrycollection' => ['geometrycollection', 1, 0],
         'json' => ['varchar', 200, ''],
+        'enum' => ['enum', 200, ''],
         'array' => ['varchar', 200, ''],
     ];
 
@@ -125,7 +126,7 @@ class Column
 
         $this->type = $type;
 
-        $this->length = empty($length) ? $defaultLength : $length;
+        $this->setLength($length, $defaultLength);
 
         $this->nullable = $nullable;
 
@@ -135,7 +136,25 @@ class Column
     }
 
     /**
-     * @return int
+     * @param string|int $length
+     */
+    public function setLength($length = null, $defaultLength = null)
+    {
+        if (is_array($length)) {
+            $this->length = '';
+            foreach ($length as $value) {
+                '' !== $this->length && $this->length .= ',';
+                $this->length .= is_numeric($value) ? $value : '\'' . $value . '\'';
+            }
+        } elseif (empty($length)) {
+            $this->length = $defaultLength;
+        } else {
+            $this->length = $length;
+        }
+    }
+
+    /**
+     * @return int|null|string
      */
     public function getLength()
     {
@@ -324,24 +343,25 @@ class Column
         return
             (
                 $column->getName()
-                .$column->gettype()
-                .$column->getLength()
-                .$column->getComment()
-                .$column->getDefault()
-                .(null !== $column->getKey() ? $column->getKey()->getKey() : '')
+                . $column->gettype()
+                . $column->getLength()
+                . $column->getComment()
+                . $column->getDefault()
+                . (null !== $column->getKey() ? $column->getKey()->getKey() : '')
             ) ===
             (
                 $this->getName()
-                .$this->gettype()
-                .$this->getLength()
-                .$this->getComment()
-                .$this->getDefault()
-                .(null !== $this->getKey() ? $this->getKey()->getKey() : '')
+                . $this->gettype()
+                . $this->getLength()
+                . $this->getComment()
+                . $this->getDefault()
+                . (null !== $this->getKey() ? $this->getKey()->getKey() : '')
             );
     }
 
     public function __toString()
     {
+
         // name type(10) unsigned not null default '' comment ''
         return sprintf(
             '`%s` %s%s %s %s default %s comment %s',
