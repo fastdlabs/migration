@@ -43,7 +43,7 @@ class Migrate extends Command
     /**
      * @var string
      */
-    protected $seedPath = '';
+    protected $seedPath = 'table';
 
     /**
      * @var PDO
@@ -511,16 +511,16 @@ class Migrate extends Command
                 $code[] = str_repeat(' ', 12) . '->withUnsigned()';
             }
             if ($column->isIndex()) {
-                $index[] = str_repeat(' ', 4) .
-                    sprintf("->addIndex('%s', 'Index')", $column->getName());
+                $index[] = str_repeat(' ', 12) .
+                    sprintf("->addIndex('%s', Key::INDEX)", $column->getName());
             }
             if ($column->isPrimary()) {
-                $index[] = str_repeat(' ', 4) .
-                    sprintf("->addIndex('%s', 'PRIMARY')", $column->getName());
+                $index[] = str_repeat(' ', 12) .
+                    sprintf("->addIndex('%s', Key::PRIMARY)", $column->getName());
             }
             if ($column->isUnique()) {
-                $index[] = str_repeat(' ', 4) .
-                    sprintf("->addIndex('%s', 'UNIQUE')", $column->getName());
+                $index[] = str_repeat(' ', 12) .
+                    sprintf("->addIndex('%s', Key::UNIQUE)", $column->getName());
             }
         }
 
@@ -538,6 +538,7 @@ class Migrate extends Command
 
 use \FastD\Migration\MigrationAbstract;
 use \FastD\Migration\Table;
+use \FastD\Migration\Key;
 
 
 class {$name} extends MigrationAbstract
@@ -549,8 +550,7 @@ class {$name} extends MigrationAbstract
     {
         \$table = new Table('{$table}');
 
-        {$codeString}
-        {$indexString}
+        {$codeString}\n{$indexString}
         
         return \$table;
     }
