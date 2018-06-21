@@ -26,6 +26,11 @@ class Table
     protected $columns = [];
 
     /**
+     * @var Column
+     */
+    protected $column;
+
+    /**
      * @var string
      */
     protected $charset = 'utf8';
@@ -86,6 +91,8 @@ class Table
 
         $this->columns[$column->getName()] = $column;
 
+        $this->column = $column;
+
         return $this;
     }
 
@@ -101,6 +108,18 @@ class Table
     }
 
     /**
+     * @param $column
+     * @param $key
+     * @return $this
+     */
+    public function addIndex($column, $key)
+    {
+        $this->getColumn($column)->withKey($key);
+
+        return $this;
+    }
+
+    /**
      * Get all table schema columns.
      *
      * @return Column[]
@@ -109,6 +128,17 @@ class Table
     {
         return $this->columns;
     }
+
+    /**
+     * Get table schema the newly added column.
+     *
+     * @return Column
+     */
+    public function getLastColumn()
+    {
+        return $this->column;
+    }
+
 
     /**
      * Get one table column object.
@@ -169,6 +199,25 @@ class Table
 
         return $this;
     }
+
+    /**
+     * @param int $inc
+     * @return $this
+     */
+    public function withIncrement($inc = 1)
+    {
+        $this->getLastColumn()->withIncrement($inc);
+
+        return $this;
+    }
+
+    public function withUnsigned($unsigned = true)
+    {
+        $this->getLastColumn()->withUnsigned($unsigned);
+
+        return $this;
+    }
+
 
     /**
      * @return string
