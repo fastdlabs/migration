@@ -43,7 +43,7 @@ class Migrate extends Command
     /**
      * @var string
      */
-    protected $seedPath = 'table';
+    protected $seedPath = '';
 
     /**
      * @var PDO
