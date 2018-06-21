@@ -161,7 +161,8 @@ class Migrate extends Command
     /**
      * @param InputInterface $input
      * @param OutputInterface $output
-     * @return int
+     * @return int|null
+     * @throws \Exception
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
@@ -226,16 +227,19 @@ class Migrate extends Command
     {
         if ($input->hasParameterOption(['--info', '-i']) || !empty($input->getArgument('table'))) {
             $t = new SymfonyTable($output);
-            $t->setHeaders(array('Field', 'Type', 'Nullable', 'Key', 'Default', 'Extra'));
+            $t->setHeaders(array('Field', 'Type', 'Nullable', 'Key', 'Default', 'Comment', 'Extra'));
             foreach ($table->getColumns() as $column) {
                 $t->addRow(
                     [
                         $column->getName(),
-                        $column->getType() . ($column->getLength() === null ? '' : '(' . $column->getLength() . ')'),
+                        $column->getType() .
+                        ($column->getLength() === null ? '' : '(' . $column->getLength() . ')') .
+                        ($column->isUnsigned() ? '' : ' unsigned'),
                         $column->isNullable() ? 'YES' : 'NO',
                         null === $column->getKey() ? '' : $column->getKey()->getKey(),
                         $column->getDefault(),
-                        (null == $column->getComment()) ? '' : ('comment:' . $column->getComment()),
+                        $column->getComment() ? $column->getComment() : '',
+                        $column->isIncrement() ? 'auto_increment' : ''
                     ]
                 );
             }
@@ -482,6 +486,7 @@ class Migrate extends Command
         $name = $this->classRename($table->getTableName());
 
         $code = ['$table'];
+        $index = [];
         foreach ($table->getColumns() as $column) {
 
             $length = null === $column->getLength() ? 'null' : $column->getLength();
@@ -499,10 +504,32 @@ class Migrate extends Command
                     $column->getDefault(),
                     $column->getComment()
                 );
+            if ($column->isIncrement()) {
+                $code[] = str_repeat(' ', 12) . '->withIncrement()';
+            }
+            if ($column->isUnsigned()) {
+                $code[] = str_repeat(' ', 12) . '->withUnsigned()';
+            }
+            if ($column->isIndex()) {
+                $index[] = str_repeat(' ', 12) .
+                    sprintf("->addIndex('%s', Key::INDEX)", $column->getName());
+            }
+            if ($column->isPrimary()) {
+                $index[] = str_repeat(' ', 12) .
+                    sprintf("->addIndex('%s', Key::PRIMARY)", $column->getName());
+            }
+            if ($column->isUnique()) {
+                $index[] = str_repeat(' ', 12) .
+                    sprintf("->addIndex('%s', Key::UNIQUE)", $column->getName());
+            }
         }
-        $code[] = str_repeat(' ', 8) . ';';
 
-        $codeString = implode(PHP_EOL, $code);
+        if (!empty($index)) {
+            $codeString = implode(PHP_EOL, $code);
+            $indexString = implode(PHP_EOL, $index) . ';';
+        } else {
+            $codeString = implode(PHP_EOL, $code) . ';';
+        }
 
         $table = strtolower($table->getTableName());
 
@@ -511,6 +538,7 @@ class Migrate extends Command
 
 use \FastD\Migration\MigrationAbstract;
 use \FastD\Migration\Table;
+use \FastD\Migration\Key;
 
 
 class {$name} extends MigrationAbstract
@@ -522,8 +550,8 @@ class {$name} extends MigrationAbstract
     {
         \$table = new Table('{$table}');
 
-        {$codeString}
-
+        {$codeString}\n{$indexString}
+        
         return \$table;
     }
 }
