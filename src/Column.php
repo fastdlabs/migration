@@ -46,7 +46,7 @@ class Column
         'year' => ['year', 1, 0],
         'binary' => ['binary', 1, 0],
         'varbinary' => ['varbinary', 1, 0],
-        'emum' => ['emum', 1, 0],
+        'emum' => ['emum', [], 0],
         'set' => ['set', 1, 0],
         'geometry' => ['geometry', 1, 0],
         'point' => ['point', 1, 0],
