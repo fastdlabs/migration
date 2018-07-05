@@ -254,7 +254,7 @@ WHERE
         foreach ($table->getColumns() as $name => $column) {
             // wrap default value sql
             $default = '';
-            if (!$column->isIncrement() && !$column->isUnique() && !$column->isPrimary()) {
+            if (!$column->isIncrement() && !$column->isUnique() && !$column->isPrimary() && null !== $column->getDefault()) {
                 $defaultValue = $column->getDefault();
                 if (!$this->isFunction($defaultValue)) {
                     if (is_int($defaultValue)) {
@@ -331,7 +331,7 @@ WHERE
         foreach ($table->getColumns() as $name => $column) {
             // wrap default value sql
             $default = '';
-            if (!$column->isIncrement() && !$column->isUnique() && !$column->isPrimary()) {
+            if (!$column->isIncrement() && !$column->isUnique() && !$column->isPrimary() && null !== $column->getDefault()) {
                 $defaultValue = $column->getDefault();
                 if (!$this->isFunction($defaultValue)) {
                     if (is_int($defaultValue)) {

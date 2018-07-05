@@ -529,6 +529,7 @@ class Migrate extends Command
             $indexString = implode(PHP_EOL, $index) . ';';
         } else {
             $codeString = implode(PHP_EOL, $code) . ';';
+            $indexString = '';
         }
 
         $table = strtolower($table->getTableName());
