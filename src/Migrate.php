@@ -88,7 +88,7 @@ class Migrate extends Command
     {
         if (null === $this->connection) {
             $this->connection = new PDO(
-                sprintf('mysql:host=%s;dbname=%s', $this->config['host'], $this->config['dbname']),
+                sprintf('mysql:host=%s;dbname=%s', $this->config['host'] . ':'. $this->config['port'], $this->config['dbname']),
                 $this->config['user'],
                 $this->config['pass']
             );
@@ -401,8 +401,20 @@ class Migrate extends Command
                         if (file_exists($dataFile) && !file_exists($cachePath . '/' . $tableName)) {
                             $dataset = Yaml::parse(file_get_contents($dataFile));
                             foreach ($dataset as $row) {
-                                $sql = (new MySqlBuilder($tableName))->insert($row);
-                                if ($this->connection->exec($sql) > 0) {
+                                $keys = array_keys($row);
+                                $key = '(' . implode(',', $keys) . ')';
+                                $value = '(';
+                                foreach ($row as $filed => $item) {
+                                    $value .= ":{$filed},";
+                                }
+                                $value = trim($value,',') . ')';
+                                $sql = 'INSERT INTO ' . $tableName . $key . ' VALUES ' . $value . ';';
+                                $smt = $this->connection->prepare($sql);
+                                foreach ($row as $filed => $datum) {
+                                    $smt->bindParam(':' .$filed, $$filed);
+                                }
+                                extract($row);
+                                if ($smt->execute()) {
                                     $rowsCount++;
                                 }
                             }
